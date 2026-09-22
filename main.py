@@ -151,7 +151,7 @@ app.mount(
 
 @app.get("/", response_class=HTMLResponse)
 async def home():
-    return FileResponse(BASE / "index.html")
+    return FileResponse(BASE / "admin.html")
 
 
 @app.get("/admin", response_class=HTMLResponse)
