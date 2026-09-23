@@ -55,6 +55,31 @@ if (
         api_secret=CLOUDINARY_API_SECRET,
         secure=True
     )
+    def upload_image_to_cloudinary(photo, folder):
+    if not (
+        CLOUDINARY_CLOUD_NAME
+        and CLOUDINARY_API_KEY
+        and CLOUDINARY_API_SECRET
+    ):
+        raise HTTPException(
+            status_code=500,
+            detail="Cloudinary is not configured"
+        )
+
+    try:
+        result = cloudinary.uploader.upload(
+            photo.file,
+            folder=folder,
+            resource_type="image"
+        )
+
+        return result["secure_url"]
+
+    except Exception as error:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Cloudinary upload failed: {str(error)}"
+        )
 
 def db_execute(connection, query, params=()):
     """Use the same ? placeholders for SQLite and PostgreSQL."""
@@ -464,9 +489,9 @@ async def add_faculty(
             )
 
         photo_url = upload_image_to_cloudinary(
-    photo,
-    "vishnu-pcm/faculty"
-)
+            photo,
+            "vishnu-pcm/faculty"
+        )
 
     connection = get_db()
 
