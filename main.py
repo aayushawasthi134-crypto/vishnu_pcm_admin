@@ -1,3 +1,5 @@
+import cloudinary
+import cloudinary.uploader
 from pathlib import Path
 import os
 import sqlite3
@@ -34,7 +36,25 @@ def get_db():
     connection = sqlite3.connect(DB)
     connection.row_factory = sqlite3.Row
     return connection
+# =========================
+# CLOUDINARY CONFIGURATION
+# =========================
 
+CLOUDINARY_CLOUD_NAME = os.getenv("CLOUDINARY_CLOUD_NAME")
+CLOUDINARY_API_KEY = os.getenv("CLOUDINARY_API_KEY")
+CLOUDINARY_API_SECRET = os.getenv("CLOUDINARY_API_SECRET")
+
+if (
+    CLOUDINARY_CLOUD_NAME
+    and CLOUDINARY_API_KEY
+    and CLOUDINARY_API_SECRET
+):
+    cloudinary.config(
+        cloud_name=CLOUDINARY_CLOUD_NAME,
+        api_key=CLOUDINARY_API_KEY,
+        api_secret=CLOUDINARY_API_SECRET,
+        secure=True
+    )
 
 def db_execute(connection, query, params=()):
     """Use the same ? placeholders for SQLite and PostgreSQL."""
@@ -339,6 +359,21 @@ async def add_person(
                 detail="Only JPG, JPEG, PNG and WEBP images are allowed"
             )
 
+        photo_url = upload_image_to_cloudinary(
+            photo,
+            "vishnu-pcm/toppers-alumni"
+        )
+
+    if photo and photo.filename:
+        extension = Path(photo.filename).suffix.lower()
+        allowed_extensions = [".jpg", ".jpeg", ".png", ".webp"]
+
+        if extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400,
+                detail="Only JPG, JPEG, PNG and WEBP images are allowed"
+            )
+
         filename = secrets.token_hex(12) + extension
         file_path = UPLOAD_DIR / filename
 
@@ -428,13 +463,10 @@ async def add_faculty(
                 detail="Only JPG, JPEG, PNG and WEBP images are allowed"
             )
 
-        filename = secrets.token_hex(12) + extension
-        file_path = UPLOAD_DIR / filename
-
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(photo.file, buffer)
-
-        photo_url = "/static/uploads/" + filename
+        photo_url = upload_image_to_cloudinary(
+    photo,
+    "vishnu-pcm/faculty"
+)
 
     connection = get_db()
 
