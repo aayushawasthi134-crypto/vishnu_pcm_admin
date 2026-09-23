@@ -55,7 +55,7 @@ if (
         api_secret=CLOUDINARY_API_SECRET,
         secure=True
     )
-    def upload_image_to_cloudinary(photo, folder):
+def upload_image_to_cloudinary(photo, folder):
     if not (
         CLOUDINARY_CLOUD_NAME
         and CLOUDINARY_API_KEY
