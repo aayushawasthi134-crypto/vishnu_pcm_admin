@@ -370,13 +370,23 @@ async def add_person(
     _: bool = Depends(check_auth)
 ):
     if type not in ["topper", "alumni"]:
-        raise HTTPException(status_code=400, detail="Invalid type")
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid type"
+        )
 
     photo_url = ""
 
     if photo and photo.filename:
+
         extension = Path(photo.filename).suffix.lower()
-        allowed_extensions = [".jpg", ".jpeg", ".png", ".webp"]
+
+        allowed_extensions = [
+            ".jpg",
+            ".jpeg",
+            ".png",
+            ".webp"
+        ]
 
         if extension not in allowed_extensions:
             raise HTTPException(
@@ -389,46 +399,36 @@ async def add_person(
             "vishnu-pcm/toppers-alumni"
         )
 
-    if photo and photo.filename:
-        extension = Path(photo.filename).suffix.lower()
-        allowed_extensions = [".jpg", ".jpeg", ".png", ".webp"]
-
-        if extension not in allowed_extensions:
-            raise HTTPException(
-                status_code=400,
-                detail="Only JPG, JPEG, PNG and WEBP images are allowed"
-            )
-
-        filename = secrets.token_hex(12) + extension
-        file_path = UPLOAD_DIR / filename
-
-        with file_path.open("wb") as buffer:
-            shutil.copyfileobj(photo.file, buffer)
-
-        photo_url = "/static/uploads/" + filename
-
     connection = get_db()
 
     cursor = db_execute(
         connection,
         """
-        INSERT INTO people (type, name, details, review, photo)
+        INSERT INTO people
+        (type, name, details, review, photo)
         VALUES (?, ?, ?, ?, ?)
         RETURNING id
         """,
-        (type, name, details, review, photo_url)
+        (
+            type,
+            name,
+            details,
+            review,
+            photo_url
+        )
     )
 
     connection.commit()
+
     new_id = get_returned_id(cursor)
+
     connection.close()
 
     return {
         "success": True,
         "id": new_id,
         "photo": photo_url
-    }
-
+}
 # =====================================================
 # ADD REVIEW
 # =====================================================
