@@ -1,48 +1,70 @@
-/* =========================================
-   VISHNU PCM CLASSES - ADMIN JAVASCRIPT
-========================================= */
+let currentData = {
+    faculty: [],
+    toppers: [],
+    alumni: [],
+    testimonials: []
+};
+
+let galleryData = [];
 
 
-/* =========================================
-   LOGIN
-========================================= */
+function getToken() {
+    return localStorage.getItem("adminToken") || "";
+}
+
+
+async function apiFetch(url, options = {}) {
+
+    options.headers = {
+        ...(options.headers || {}),
+        "Authorization": `Bearer ${getToken()}`
+    };
+
+    const response = await fetch(url, options);
+
+    if (response.status === 401) {
+
+        logout();
+
+        throw new Error("Session expired");
+
+    }
+
+    return response;
+}
+
+
+// =========================================================
+// LOGIN
+// =========================================================
 
 async function login(event) {
 
     event.preventDefault();
 
-    const email =
-        document.getElementById("email").value.trim();
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-    const password =
-        document.getElementById("password").value;
+    const errorBox = document.getElementById("loginError");
 
-    const loginMsg =
-        document.getElementById("loginMsg");
-
-    loginMsg.textContent = "Logging in...";
-    loginMsg.style.color = "#777";
+    errorBox.textContent = "";
 
     try {
 
-        const response = await fetch("/api/login", {
+        const formData = new FormData();
 
-            method: "POST",
+        formData.append("email", email);
+        formData.append("password", password);
 
-            headers: {
-                "Content-Type": "application/json"
-            },
-
-            body: JSON.stringify({
-                email: email,
-                password: password
-            })
-
-        });
-
+        const response = await fetch(
+            "/api/login",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
 
         const data = await response.json();
-
 
         if (!response.ok) {
 
@@ -52,161 +74,65 @@ async function login(event) {
 
         }
 
-
         localStorage.setItem(
             "adminToken",
-            data.access_token
+            data.token
         );
 
+        document.getElementById(
+            "loginPage"
+        ).style.display = "none";
 
-        document
-            .getElementById("login")
-            .classList.add("hidden");
+        document.getElementById(
+            "adminApp"
+        ).style.display = "flex";
 
+        await loadAdminData();
 
-        document
-            .getElementById("app")
-            .classList.remove("hidden");
+        await loadAdminGallery();
 
+    } catch (error) {
 
-        loadAdminData();
-
-    }
-
-    catch (error) {
-
-        loginMsg.textContent =
-            error.message;
-
-        loginMsg.style.color =
-            "#d33";
+        errorBox.textContent = error.message;
 
     }
-
 }
 
 
-/* =========================================
-   LOGOUT
-========================================= */
+// =========================================================
+// LOGOUT
+// =========================================================
 
 function logout() {
 
-    localStorage.removeItem(
-        "adminToken"
-    );
+    localStorage.removeItem("adminToken");
 
     location.reload();
 
 }
 
 
-/* =========================================
-   AUTH TOKEN
-========================================= */
-
-function getToken() {
-
-    return localStorage.getItem(
-        "adminToken"
-    );
-
-}
-
-
-/* =========================================
-   AUTH FETCH
-========================================= */
-
-async function apiFetch(
-    url,
-    options = {}
-) {
-
-    const token =
-        getToken();
-
-
-    if (!token) {
-
-        throw new Error(
-            "Login required"
-        );
-
-    }
-
-
-    options.headers = {
-
-        ...(options.headers || {}),
-
-        "Authorization":
-            "Bearer " + token
-
-    };
-
-
-    const response =
-        await fetch(
-            url,
-            options
-        );
-
-
-    if (response.status === 401) {
-
-        localStorage.removeItem(
-            "adminToken"
-        );
-
-        location.reload();
-
-        throw new Error(
-            "Session expired"
-        );
-
-    }
-
-
-    return response;
-
-}
-
-
-/* =========================================
-   TAB SYSTEM
-========================================= */
+// =========================================================
+// TAB
+// =========================================================
 
 function showTab(tabName) {
 
-    const tabs =
-        document.querySelectorAll(
-            ".tab"
-        );
+    document
+        .querySelectorAll(".admin-section")
+        .forEach(section => {
+
+            section.classList.remove("active");
+
+        });
 
 
-    tabs.forEach(
-        tab => {
+    const selectedSection =
+        document.getElementById(tabName);
 
-            tab.classList.add(
-                "hidden"
-            );
+    if (selectedSection) {
 
-        }
-    );
-
-
-    const selected =
-        document.getElementById(
-            tabName
-        );
-
-
-    if (selected) {
-
-        selected.classList.remove(
-            "hidden"
-        );
+        selectedSection.classList.add("active");
 
     }
 
@@ -214,14 +140,11 @@ function showTab(tabName) {
     const titles = {
 
         dashboard: "Dashboard",
-
         faculty: "Faculty",
-
         toppers: "Toppers",
-
         alumni: "Alumni",
-
-        reviews: "Reviews"
+        reviews: "Reviews",
+        gallery: "Gallery"
 
     };
 
@@ -234,120 +157,116 @@ function showTab(tabName) {
 }
 
 
-/* =========================================
-   LOAD ADMIN DATA
-========================================= */
+// =========================================================
+// LOAD ADMIN DATA
+// =========================================================
 
 async function loadAdminData() {
 
     try {
 
         const response =
-            await apiFetch(
-                "/api/admin/data"
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "Unable to load admin data"
-            );
-
-        }
-
+            await apiFetch("/api/admin/data");
 
         const data =
             await response.json();
 
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail || "Failed to load data"
+            );
+
+        }
+
+        currentData = data;
 
         renderFacultyAdmin(
             data.faculty || []
         );
 
-
         renderPeopleAdmin(
             data.toppers || [],
+            "topperList",
             "topper"
         );
 
-
         renderPeopleAdmin(
             data.alumni || [],
+            "alumniList",
             "alumni"
         );
-
 
         renderReviewsAdmin(
             data.testimonials || []
         );
 
+        updateCounts();
 
-        updateCounts(
-            data
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Unable to load admin data: " +
+            error.message
         );
 
     }
-
-    catch (error) {
-
-        console.error(
-            error
-        );
-
-    }
-
 }
 
 
-/* =========================================
-   DASHBOARD COUNTS
-========================================= */
+// =========================================================
+// COUNTS
+// =========================================================
 
-function updateCounts(data) {
+function updateCounts() {
 
     document.getElementById(
         "facultyCount"
     ).textContent =
-        (data.faculty || []).length;
+        currentData.faculty?.length || 0;
 
 
     document.getElementById(
         "topCount"
     ).textContent =
-        (data.toppers || []).length;
+        currentData.toppers?.length || 0;
 
 
     document.getElementById(
         "alumniCount"
     ).textContent =
-        (data.alumni || []).length;
+        currentData.alumni?.length || 0;
 
 
     document.getElementById(
         "reviewCount"
     ).textContent =
-        (data.testimonials || []).length;
+        currentData.testimonials?.length || 0;
+
+
+    document.getElementById(
+        "galleryCount"
+    ).textContent =
+        galleryData.length || 0;
 
 }
 
 
-/* =========================================
-   ADD FACULTY
-========================================= */
+// =========================================================
+// FACULTY
+// =========================================================
 
 async function addFaculty(event) {
 
     event.preventDefault();
 
-
     const form =
         event.target;
 
-
     const formData =
         new FormData(form);
-
 
     try {
 
@@ -360,197 +279,154 @@ async function addFaculty(event) {
                 }
             );
 
-
         const data =
             await response.json();
-
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail ||
-                "Failed to add faculty"
+                data.detail || "Failed to add faculty"
             );
 
         }
-
 
         alert(
             "Faculty added successfully!"
         );
 
-
         form.reset();
 
+        await loadAdminData();
 
-        loadAdminData();
-
-
-        showTab(
-            "faculty"
-        );
-
-    }
-
-    catch (error) {
+    } catch (error) {
 
         alert(
+            "Failed: " +
             error.message
         );
 
     }
-
 }
 
 
-/* =========================================
-   RENDER FACULTY
-========================================= */
-
-function renderFacultyAdmin(
-    faculty
-) {
+function renderFacultyAdmin(faculty) {
 
     const container =
         document.getElementById(
             "facultyList"
         );
 
-
     if (!faculty.length) {
 
-        container.innerHTML = `
-
-            <div class="welcome-card">
-
-                <h3>
-                    No Faculty Added
-                </h3>
-
-                <p>
-                    Add your first teacher
-                    using the form above.
-                </p>
-
-            </div>
-
-        `;
+        container.innerHTML =
+            `<div class="empty-state">
+                No faculty added yet.
+            </div>`;
 
         return;
-
     }
 
 
     container.innerHTML =
-        faculty.map(
-            teacher => `
+        faculty.map(teacher => {
 
-            <div
-                class="admin-item"
-            >
+            const image =
+                teacher.photo
+                    ? `<img src="${getImageUrl(teacher.photo)}" alt="">`
+                    : `<div class="admin-placeholder">V</div>`;
 
-                <div
-                    class="admin-item-left"
-                >
+            return `
 
-                    ${
-                        teacher.photo
+                <div class="admin-item">
 
-                        ?
+                    <div class="admin-item-image">
+                        ${image}
+                    </div>
 
-                        `
-                        <img
-                            src="${teacher.photo}"
-                            alt="Teacher"
-                        >
-                        `
-
-                        :
-
-                        `
-                        <div class="no-photo">
-                            👨‍🏫
-                        </div>
-                        `
-                    }
-
-
-                    <div>
+                    <div class="admin-item-content">
 
                         <h3>
-                            ${escapeHTML(
-                                teacher.name
-                            )}
+                            ${escapeHTML(teacher.name)}
                         </h3>
 
-
-                        <p class="subject">
-                            ${escapeHTML(
-                                teacher.subject
-                            )}
-                        </p>
-
+                        <strong>
+                            ${escapeHTML(teacher.subject)}
+                        </strong>
 
                         <p>
                             ${escapeHTML(
-                                teacher.description ||
-                                "No description added."
+                                teacher.description || ""
                             )}
                         </p>
 
                     </div>
 
+                    <button
+                        class="delete-btn"
+                        onclick="deleteFaculty(${teacher.id})"
+                    >
+                        Delete
+                    </button>
+
                 </div>
 
+            `;
 
-                <button class="delete-btn" onclick="deleteFaculty(${teacher.id})">
-    Delete
-</button>
-
-            </div>
-
-        `
-        ).join("");
+        }).join("");
 
 }
 
-
-/* =========================================
-   DELETE FACULTY
-========================================= */
 
 async function deleteFaculty(id) {
-    if (!confirm("Are you sure you want to delete this faculty?")) {
-        return;
-    }
+
+    if (
+        !confirm(
+            "Are you sure you want to delete this faculty?"
+        )
+    ) return;
+
 
     try {
-        const response = await fetch(`/api/admin/faculty/${id}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${getToken()}`
-            }
-        });
 
-        const data = await response.json();
+        const response =
+            await apiFetch(
+                `/api/admin/faculty/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+        const data =
+            await response.json();
 
         if (!response.ok) {
-            throw new Error(data.detail || "Delete failed");
+
+            throw new Error(
+                data.detail || "Delete failed"
+            );
+
         }
 
-        alert("Faculty deleted successfully!");
-        loadAdminData();
+        alert(
+            "Faculty deleted successfully!"
+        );
+
+        await loadAdminData();
 
     } catch (error) {
-        console.error(error);
-        alert("Delete failed: " + error.message);
+
+        alert(
+            "Delete failed: " +
+            error.message
+        );
+
     }
 }
 
 
-/* =========================================
-   ADD TOPPER / ALUMNI
-========================================= */
+// =========================================================
+// TOPPERS / ALUMNI
+// =========================================================
 
 async function addPerson(
     event,
@@ -559,20 +435,16 @@ async function addPerson(
 
     event.preventDefault();
 
-
     const form =
         event.target;
 
-
     const formData =
         new FormData(form);
-
 
     formData.append(
         "type",
         type
     );
-
 
     try {
 
@@ -585,230 +457,178 @@ async function addPerson(
                 }
             );
 
-
         const data =
             await response.json();
-
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail ||
-                "Failed to add"
+                data.detail || "Failed"
             );
 
         }
 
-
         alert(
-            type === "topper"
-                ? "Topper added successfully!"
-                : "Alumni added successfully!"
+            `${type} added successfully!`
         );
-
 
         form.reset();
 
+        await loadAdminData();
 
-        loadAdminData();
-
-    }
-
-    catch (error) {
+    } catch (error) {
 
         alert(
+            "Failed: " +
             error.message
         );
 
     }
-
 }
 
 
-/* =========================================
-   RENDER TOPPERS / ALUMNI
-========================================= */
-
 function renderPeopleAdmin(
     people,
+    containerId,
     type
 ) {
 
     const container =
         document.getElementById(
-            type === "topper"
-                ? "topperList"
-                : "alumniList"
+            containerId
         );
-
 
     if (!people.length) {
 
-        container.innerHTML = `
-
-            <div class="welcome-card">
-
-                <h3>
-                    No ${
-                        type === "topper"
-                            ? "Toppers"
-                            : "Alumni"
-                    } Added
-                </h3>
-
-            </div>
-
-        `;
+        container.innerHTML =
+            `<div class="empty-state">
+                No ${type}s added yet.
+            </div>`;
 
         return;
-
     }
 
 
     container.innerHTML =
-        people.map(
-            person => `
+        people.map(person => {
 
-            <div
-                class="admin-item"
-            >
+            const image =
+                person.photo
+                    ? `<img src="${getImageUrl(person.photo)}" alt="">`
+                    : `<div class="admin-placeholder">V</div>`;
 
-                <div
-                    class="admin-item-left"
-                >
+            return `
 
-                    ${
-                        person.photo
+                <div class="admin-item">
 
-                        ?
+                    <div class="admin-item-image">
 
-                        `
-                        <img
-                            src="${person.photo}"
-                            alt=""
-                        >
-                        `
-
-                        :
-
-                        `
-                        <div class="no-photo">
-                            ${
-                                type === "topper"
-                                    ? "🏆"
-                                    : "🎓"
-                            }
-                        </div>
-                        `
-                    }
-
-
-                    <div>
-
-                        <h3>
-                            ${escapeHTML(
-                                person.name
-                            )}
-                        </h3>
-
-
-                        <p class="subject">
-                            ${escapeHTML(
-                                person.details || ""
-                            )}
-                        </p>
-
-
-                        ${
-                            person.review
-
-                            ?
-
-                            `
-                            <p>
-                                ${escapeHTML(
-                                    person.review
-                                )}
-                            </p>
-                            `
-
-                            :
-
-                            ""
-                        }
+                        ${image}
 
                     </div>
 
+                    <div class="admin-item-content">
+
+                        <h3>
+                            ${escapeHTML(person.name)}
+                        </h3>
+
+                        <strong>
+                            ${escapeHTML(
+                                person.details || ""
+                            )}
+                        </strong>
+
+                        <p>
+                            ${escapeHTML(
+                                person.review || ""
+                            )}
+                        </p>
+
+                    </div>
+
+                    <button
+                        class="delete-btn"
+                        onclick="deletePerson(
+                            '${type}',
+                            ${person.id}
+                        )"
+                    >
+                        Delete
+                    </button>
+
                 </div>
 
+            `;
 
-                <button class="delete-btn" onclick="deletePerson('${person.type}', ${person.id})">
-    Delete
-</button>
-
-            </div>
-
-        `
-        ).join("");
+        }).join("");
 
 }
 
 
-/* =========================================
-   DELETE TOPPER / ALUMNI
-========================================= */
-
-async function deletePerson(type, id) {
-    if (!confirm(`Are you sure you want to delete this ${type}?`)) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/admin/${type}/${id}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${getToken()}`
-            }
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-            throw new Error(data.detail || "Delete failed");
-        }
-
-        alert(`${type} deleted successfully!`);
-        loadAdminData();
-
-    } catch (error) {
-        console.error(error);
-        alert("Delete failed: " + error.message);
-    }
-}
-
-
-/* =========================================
-   ADD REVIEW
-========================================= */
-
-async function addReview(
-    event
+async function deletePerson(
+    type,
+    id
 ) {
 
-    event.preventDefault();
+    if (
+        !confirm(
+            `Are you sure you want to delete this ${type}?`
+        )
+    ) return;
 
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/api/admin/${type}/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail || "Delete failed"
+            );
+
+        }
+
+        alert(
+            `${type} deleted successfully!`
+        );
+
+        await loadAdminData();
+
+    } catch (error) {
+
+        alert(
+            "Delete failed: " +
+            error.message
+        );
+
+    }
+}
+
+
+// =========================================================
+// REVIEWS
+// =========================================================
+
+async function addReview(event) {
+
+    event.preventDefault();
 
     const form =
         event.target;
 
-
-    const name =
-        form.elements.name.value.trim();
-
-
-    const review =
-        form.elements.review.value.trim();
-
+    const formData =
+        new FormData(form);
 
     try {
 
@@ -816,68 +636,40 @@ async function addReview(
             await apiFetch(
                 "/api/admin/testimonials",
                 {
-
                     method: "POST",
-
-                    headers: {
-
-                        "Content-Type":
-                            "application/json"
-
-                    },
-
-                    body: JSON.stringify({
-
-                        name: name,
-
-                        review: review
-
-                    })
-
+                    body: formData
                 }
             );
-
 
         const data =
             await response.json();
 
-
         if (!response.ok) {
 
             throw new Error(
-                data.detail ||
-                "Failed to add review"
+                data.detail || "Failed"
             );
 
         }
-
 
         alert(
             "Review added successfully!"
         );
 
-
         form.reset();
 
+        await loadAdminData();
 
-        loadAdminData();
-
-    }
-
-    catch (error) {
+    } catch (error) {
 
         alert(
+            "Failed: " +
             error.message
         );
 
     }
-
 }
 
-
-/* =========================================
-   RENDER REVIEWS
-========================================= */
 
 function renderReviewsAdmin(
     reviews
@@ -888,102 +680,547 @@ function renderReviewsAdmin(
             "reviewList"
         );
 
-
     if (!reviews.length) {
 
-        container.innerHTML = `
-
-            <div class="welcome-card">
-
-                <h3>
-                    No Reviews Added
-                </h3>
-
-            </div>
-
-        `;
+        container.innerHTML =
+            `<div class="empty-state">
+                No reviews added yet.
+            </div>`;
 
         return;
-
     }
 
 
     container.innerHTML =
-        reviews.map(
-            review => `
+        reviews.map(review => {
 
-            <div
-                class="admin-item"
-            >
+            return `
 
-                <div>
+                <div class="admin-item">
 
-                    <h3>
-                        ${escapeHTML(
-                            review.name
-                        )}
-                    </h3>
+                    <div class="admin-item-content">
 
+                        <h3>
+                            ${escapeHTML(
+                                review.name
+                            )}
+                        </h3>
 
-                    <p>
-                        ${escapeHTML(
-                            review.review
-                        )}
-                    </p>
+                        <p>
+                            ${escapeHTML(
+                                review.review
+                            )}
+                        </p>
+
+                    </div>
+
+                    <button
+                        class="delete-btn"
+                        onclick="deleteReview(${review.id})"
+                    >
+                        Delete
+                    </button>
 
                 </div>
 
+            `;
 
-                <button
-                    class="delete-btn"
-                    onclick="deleteReview(${review.id})"
-                >
-                    Delete
-                </button>
-
-            </div>
-
-        `
-        ).join("");
+        }).join("");
 
 }
 
 
-/* =========================================
-   DELETE REVIEW
-========================================= */
+async function deleteReview(id) {
 
-async function deleteReview(
-    reviewId
-) {
-
-    const confirmed =
-        confirm(
+    if (
+        !confirm(
             "Are you sure you want to delete this review?"
-        );
-
-
-    if (!confirmed) {
-
-        return;
-
-    }
+        )
+    ) return;
 
 
     try {
 
         const response =
             await apiFetch(
-                `/api/admin/review/${reviewId}`,
+                `/api/admin/review/${id}`,
                 {
                     method: "DELETE"
                 }
             );
 
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail || "Delete failed"
+            );
+
+        }
+
+        alert(
+            "Review deleted successfully!"
+        );
+
+        await loadAdminData();
+
+    } catch (error) {
+
+        alert(
+            "Delete failed: " +
+            error.message
+        );
+
+    }
+}
+
+
+// =========================================================
+// GALLERY
+// =========================================================
+
+async function loadAdminGallery() {
+
+    try {
+
+        const response =
+            await apiFetch(
+                "/api/admin/gallery"
+            );
 
         const data =
             await response.json();
 
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail || "Failed to load gallery"
+            );
+
+        }
+
+        galleryData =
+            data.gallery || [];
+
+        renderAdminGallery();
+
+        updateCounts();
+
+    } catch (error) {
+
+        console.error(
+            "Gallery error:",
+            error
+        );
+
+    }
+}
+
+
+// =========================================================
+// CREATE EVENT
+// =========================================================
+
+async function createGalleryEvent(event) {
+
+    event.preventDefault();
+
+    const form =
+        event.target;
+
+    const formData =
+        new FormData(form);
+
+    try {
+
+        const response =
+            await apiFetch(
+                "/api/admin/gallery/event",
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Failed to create event"
+            );
+
+        }
+
+        alert(
+            "Gallery event created successfully!"
+        );
+
+        form.reset();
+
+        await loadAdminGallery();
+
+    } catch (error) {
+
+        alert(
+            "Failed: " +
+            error.message
+        );
+
+    }
+}
+
+
+// =========================================================
+// RENDER GALLERY
+// =========================================================
+
+function renderAdminGallery() {
+
+    const container =
+        document.getElementById(
+            "galleryAdminList"
+        );
+
+    if (!galleryData.length) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                <h3>
+                    No gallery events yet
+                </h3>
+
+                <p>
+                    Create your first event above.
+                </p>
+            </div>
+            `;
+
+        return;
+    }
+
+
+    container.innerHTML =
+        galleryData.map(event => {
+
+            const cover =
+                event.cover_photo
+                    ? `<img
+                        src="${event.cover_photo}"
+                        alt=""
+                    >`
+                    : `<div class="gallery-admin-cover-placeholder">
+                        📷
+                    </div>`;
+
+
+            const photos =
+                event.photos || [];
+
+
+            return `
+
+                <div class="gallery-event-admin">
+
+                    <div class="gallery-event-header">
+
+                        <div>
+
+                            <h3>
+                                ${escapeHTML(
+                                    event.title
+                                )}
+                            </h3>
+
+                            ${
+                                event.event_date
+                                    ? `<span>
+                                        📅 ${escapeHTML(
+                                            event.event_date
+                                        )}
+                                    </span>`
+                                    : ""
+                            }
+
+                            <p>
+                                ${escapeHTML(
+                                    event.description || ""
+                                )}
+                            </p>
+
+                            <strong>
+                                ${photos.length} Photos
+                            </strong>
+
+                        </div>
+
+
+                        <button
+                            class="delete-btn"
+                            onclick="deleteGalleryEvent(${event.id})"
+                        >
+                            Delete Event
+                        </button>
+
+                    </div>
+
+
+                    <div class="gallery-cover-preview">
+
+                        ${cover}
+
+                    </div>
+
+
+                    <div class="gallery-upload-box">
+
+                        <label>
+                            Add Photos
+                        </label>
+
+                        <input
+                            type="file"
+                            id="galleryFiles-${event.id}"
+                            accept=".jpg,.jpeg,.png,.webp"
+                            multiple
+                        >
+
+                        <button
+                            class="primary-btn"
+                            onclick="uploadGalleryPhotos(${event.id})"
+                        >
+                            Upload Photos
+                        </button>
+
+                    </div>
+
+
+                    <div class="gallery-admin-photos">
+
+                        ${
+                            photos.length
+                                ? photos.map(photo => `
+
+                                    <div class="gallery-admin-photo">
+
+                                        <img
+                                            src="${photo.photo_url}"
+                                            alt=""
+                                        >
+
+                                        ${
+                                            event.cover_photo === photo.photo_url
+                                                ? `<span class="cover-badge">
+                                                    COVER
+                                                </span>`
+                                                : ""
+                                        }
+
+                                        <div class="gallery-photo-actions">
+
+                                            ${
+                                                event.cover_photo !== photo.photo_url
+                                                    ? `<button
+                                                        onclick="setGalleryCover(
+                                                            ${event.id},
+                                                            ${photo.id}
+                                                        )"
+                                                    >
+                                                        Set Cover
+                                                    </button>`
+                                                    : ""
+                                            }
+
+                                            <button
+                                                class="danger-small"
+                                                onclick="deleteGalleryPhoto(
+                                                    ${photo.id}
+                                                )"
+                                            >
+                                                Delete
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                `).join("")
+                                : `<div class="gallery-no-photos">
+                                    No photos uploaded yet.
+                                </div>`
+                        }
+
+                    </div>
+
+                </div>
+
+            `;
+
+        }).join("");
+
+}
+
+
+// =========================================================
+// UPLOAD PHOTOS
+// =========================================================
+
+async function uploadGalleryPhotos(
+    eventId
+) {
+
+    const fileInput =
+        document.getElementById(
+            `galleryFiles-${eventId}`
+        );
+
+    if (
+        !fileInput ||
+        !fileInput.files.length
+    ) {
+
+        alert(
+            "Please select one or more photos."
+        );
+
+        return;
+    }
+
+
+    const formData =
+        new FormData();
+
+
+    Array.from(
+        fileInput.files
+    ).forEach(file => {
+
+        formData.append(
+            "photos",
+            file
+        );
+
+    });
+
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/api/admin/gallery/${eventId}/photos`,
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Upload failed"
+            );
+
+        }
+
+        alert(
+            `${data.count} photo(s) uploaded successfully!`
+        );
+
+        await loadAdminGallery();
+
+    } catch (error) {
+
+        alert(
+            "Upload failed: " +
+            error.message
+        );
+
+    }
+
+}
+
+
+// =========================================================
+// SET COVER
+// =========================================================
+
+async function setGalleryCover(
+    eventId,
+    photoId
+) {
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/api/admin/gallery/${eventId}/cover/${photoId}`,
+                {
+                    method: "PUT"
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Failed to set cover"
+            );
+
+        }
+
+        await loadAdminGallery();
+
+    } catch (error) {
+
+        alert(
+            "Failed: " +
+            error.message
+        );
+
+    }
+
+}
+
+
+// =========================================================
+// DELETE PHOTO
+// =========================================================
+
+async function deleteGalleryPhoto(
+    photoId
+) {
+
+    if (
+        !confirm(
+            "Delete this gallery photo?"
+        )
+    ) return;
+
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/api/admin/gallery/photo/${photoId}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+        const data =
+            await response.json();
 
         if (!response.ok) {
 
@@ -994,17 +1231,9 @@ async function deleteReview(
 
         }
 
+        await loadAdminGallery();
 
-        alert(
-            "Review deleted successfully!"
-        );
-
-
-        loadAdminData();
-
-    }
-
-    catch (error) {
+    } catch (error) {
 
         alert(
             "Delete failed: " +
@@ -1016,62 +1245,143 @@ async function deleteReview(
 }
 
 
-/* =========================================
-   SECURITY
-========================================= */
+// =========================================================
+// DELETE EVENT
+// =========================================================
+
+async function deleteGalleryEvent(
+    eventId
+) {
+
+    if (
+        !confirm(
+            "Delete this complete event and all its photos?"
+        )
+    ) return;
+
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/api/admin/gallery/event/${eventId}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Delete failed"
+            );
+
+        }
+
+        alert(
+            "Gallery event deleted successfully!"
+        );
+
+        await loadAdminGallery();
+
+    } catch (error) {
+
+        alert(
+            "Delete failed: " +
+            error.message
+        );
+
+    }
+
+}
+
+
+// =========================================================
+// IMAGE URL
+// =========================================================
+
+function getImageUrl(
+    photo
+) {
+
+    if (!photo) {
+        return "";
+    }
+
+    if (
+        photo.startsWith("http://") ||
+        photo.startsWith("https://")
+    ) {
+
+        return photo;
+
+    }
+
+    return photo;
+
+}
+
+
+// =========================================================
+// ESCAPE HTML
+// =========================================================
 
 function escapeHTML(
     value
 ) {
 
-    return String(value)
-        .replace(
-            /[&<>"']/g,
-            character => ({
-
-                "&": "&amp;",
-
-                "<": "&lt;",
-
-                ">": "&gt;",
-
-                '"': "&quot;",
-
-                "'": "&#039;"
-
-            }[character])
-        );
+    return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
 
 }
 
 
-/* =========================================
-   CHECK LOGIN ON PAGE LOAD
-========================================= */
+// =========================================================
+// PAGE LOAD
+// =========================================================
 
 document.addEventListener(
     "DOMContentLoaded",
-    function() {
+    async function () {
 
         const token =
             getToken();
 
+        if (!token) {
 
-        if (token) {
+            document.getElementById(
+                "loginPage"
+            ).style.display = "flex";
 
-            document
-                .getElementById("login")
-                .classList.add("hidden");
+            document.getElementById(
+                "adminApp"
+            ).style.display = "none";
 
-
-            document
-                .getElementById("app")
-                .classList.remove("hidden");
-
-
-            loadAdminData();
+            return;
 
         }
+
+
+        document.getElementById(
+            "loginPage"
+        ).style.display = "none";
+
+        document.getElementById(
+            "adminApp"
+        ).style.display = "flex";
+
+
+        await loadAdminData();
+
+        await loadAdminGallery();
 
     }
 );
