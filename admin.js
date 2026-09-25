@@ -1,3 +1,4 @@
+const API_URL = "https://vishnu-pcm-admin.onrender.com";
 let currentData = {
     faculty: [],
     toppers: [],
@@ -20,7 +21,10 @@ async function apiFetch(url, options = {}) {
         "Authorization": `Bearer ${getToken()}`
     };
 
-    const response = await fetch(url, options);
+    const response = await fetch(
+        `${API_URL}${url}`,
+        options
+    );
 
     if (response.status === 401) {
 
@@ -57,11 +61,11 @@ async function login(event) {
         formData.append("password", password);
 
         const response = await fetch(
-            "/api/login",
-            {
-                method: "POST",
-                body: formData
-            }
+        `${API_URL}/api/login`,
+        {
+            method: "POST",
+            body: formData
+        }
         );
 
         const data = await response.json();
