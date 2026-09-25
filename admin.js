@@ -1,4 +1,6 @@
 const API_URL = "https://vishnu-pcm-admin.onrender.com";
+
+
 let currentData = {
     faculty: [],
     toppers: [],
@@ -6,271 +8,597 @@ let currentData = {
     testimonials: []
 };
 
+
 let galleryData = [];
 
 
+
+/* =====================================================
+   TOKEN
+===================================================== */
+
 function getToken() {
-    return localStorage.getItem("adminToken") || "";
+
+    return localStorage.getItem("adminToken");
+
 }
 
 
-async function apiFetch(url, options = {}) {
 
-    options.headers = {
-        ...(options.headers || {}),
-        "Authorization": `Bearer ${getToken()}`
-    };
+function clearToken() {
 
-    const response = await fetch(
-        `${API_URL}${url}`,
-        options
+    localStorage.removeItem("adminToken");
+
+}
+
+
+
+/* =====================================================
+   API FETCH
+===================================================== */
+
+async function apiFetch(
+    url,
+    options = {}
+) {
+
+    const token = getToken();
+
+
+    const headers = new Headers(
+        options.headers || {}
     );
 
-    if (response.status === 401) {
 
-        logout();
+    if (token) {
 
-        throw new Error("Session expired");
+        headers.set(
+            "Authorization",
+            `Bearer ${token}`
+        );
 
     }
 
+
+    const response = await fetch(
+        `${API_URL}${url}`,
+        {
+            ...options,
+            headers
+        }
+    );
+
+
+    if (response.status === 401) {
+
+        clearToken();
+
+        logout();
+
+        throw new Error(
+            "Session expired. Please login again."
+        );
+
+    }
+
+
     return response;
+
 }
 
 
-// =========================================================
-// LOGIN
-// =========================================================
+
+/* =====================================================
+   LOGIN
+===================================================== */
 
 async function login(event) {
 
     event.preventDefault();
 
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
 
-    const errorBox = document.getElementById("loginError");
+    const emailElement =
+        document.getElementById("email");
 
-    errorBox.textContent = "";
+
+    const passwordElement =
+        document.getElementById("password");
+
+
+    const errorBox =
+        document.getElementById("loginError");
+
+
+    if (!emailElement || !passwordElement) {
+
+        alert(
+            "Login form is not available."
+        );
+
+        return;
+
+    }
+
+
+    const email =
+        emailElement.value.trim();
+
+
+    const password =
+        passwordElement.value;
+
+
+    if (errorBox) {
+
+        errorBox.textContent = "";
+
+        errorBox.style.display = "none";
+
+    }
+
 
     try {
 
-        const formData = new FormData();
+        const formData =
+            new FormData();
 
-        formData.append("email", email);
-        formData.append("password", password);
 
-        const response = await fetch(
-        `${API_URL}/api/login`,
-        {
-            method: "POST",
-            body: formData
-        }
+        formData.append(
+            "email",
+            email
         );
 
-        const data = await response.json();
+
+        formData.append(
+            "password",
+            password
+        );
+
+
+        const response =
+            await fetch(
+                `${API_URL}/api/login`,
+                {
+                    method: "POST",
+                    body: formData
+                }
+            );
+
+
+        let data = {};
+
+
+        try {
+
+            data =
+                await response.json();
+
+        } catch {
+
+            data = {};
+
+        }
+
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Login failed"
+                data.detail ||
+                "Invalid email or password."
             );
 
         }
+
+
+        if (!data.token) {
+
+            throw new Error(
+                "Login successful but token was not received."
+            );
+
+        }
+
 
         localStorage.setItem(
             "adminToken",
             data.token
         );
 
-        document.getElementById(
-            "loginPage"
-        ).style.display = "none";
 
-        document.getElementById(
-            "adminApp"
-        ).style.display = "flex";
+        const loginPage =
+            document.getElementById(
+                "loginPage"
+            );
+
+
+        const adminApp =
+            document.getElementById(
+                "adminApp"
+            );
+
+
+        if (loginPage) {
+
+            loginPage.style.display =
+                "none";
+
+        }
+
+
+        if (adminApp) {
+
+            adminApp.style.display =
+                "flex";
+
+        }
+
 
         await loadAdminData();
 
         await loadAdminGallery();
 
+
     } catch (error) {
 
-        errorBox.textContent = error.message;
+        console.error(
+            "Login error:",
+            error
+        );
+
+
+        if (errorBox) {
+
+            errorBox.textContent =
+                error.message ||
+                "Login failed.";
+
+            errorBox.style.display =
+                "block";
+
+        } else {
+
+            alert(
+                error.message ||
+                "Login failed."
+            );
+
+        }
 
     }
+
 }
 
 
-// =========================================================
-// LOGOUT
-// =========================================================
+
+/* =====================================================
+   LOGOUT
+===================================================== */
 
 function logout() {
 
-    localStorage.removeItem("adminToken");
+    clearToken();
 
-    location.reload();
+
+    const loginPage =
+        document.getElementById(
+            "loginPage"
+        );
+
+
+    const adminApp =
+        document.getElementById(
+            "adminApp"
+        );
+
+
+    if (adminApp) {
+
+        adminApp.style.display =
+            "none";
+
+    }
+
+
+    if (loginPage) {
+
+        loginPage.style.display =
+            "flex";
+
+    }
+
+
+    const email =
+        document.getElementById(
+            "email"
+        );
+
+
+    const password =
+        document.getElementById(
+            "password"
+        );
+
+
+    const error =
+        document.getElementById(
+            "loginError"
+        );
+
+
+    if (email) {
+
+        email.value = "";
+
+    }
+
+
+    if (password) {
+
+        password.value = "";
+
+    }
+
+
+    if (error) {
+
+        error.textContent = "";
+
+        error.style.display = "none";
+
+    }
 
 }
 
 
-// =========================================================
-// TAB
-// =========================================================
+
+/* =====================================================
+   SHOW TAB
+===================================================== */
 
 function showTab(tabName) {
 
-    document
-        .querySelectorAll(".admin-section")
-        .forEach(section => {
-
-            section.classList.remove("active");
-
-        });
+    const sections =
+        document.querySelectorAll(
+            ".admin-section"
+        );
 
 
-    const selectedSection =
-        document.getElementById(tabName);
+    sections.forEach(
+        section => {
 
-    if (selectedSection) {
+            section.classList.remove(
+                "active"
+            );
 
-        selectedSection.classList.add("active");
+        }
+    );
+
+
+    const selected =
+        document.getElementById(
+            tabName
+        );
+
+
+    if (selected) {
+
+        selected.classList.add(
+            "active"
+        );
 
     }
+
+
+    const pageTitle =
+        document.getElementById(
+            "pageTitle"
+        );
 
 
     const titles = {
 
-        dashboard: "Dashboard",
-        faculty: "Faculty",
-        toppers: "Toppers",
-        alumni: "Alumni",
-        reviews: "Reviews",
-        gallery: "Gallery"
+        dashboard:
+            "Dashboard",
+
+        faculty:
+            "Faculty",
+
+        toppers:
+            "Toppers",
+
+        alumni:
+            "Alumni",
+
+        reviews:
+            "Reviews",
+
+        gallery:
+            "Gallery"
 
     };
 
 
-    document.getElementById(
-        "pageTitle"
-    ).textContent =
-        titles[tabName] || "Dashboard";
+    if (pageTitle) {
+
+        pageTitle.textContent =
+            titles[tabName] ||
+            "Dashboard";
+
+    }
 
 }
 
 
-// =========================================================
-// LOAD ADMIN DATA
-// =========================================================
+
+/* =====================================================
+   LOAD ADMIN DATA
+===================================================== */
 
 async function loadAdminData() {
 
     try {
 
         const response =
-            await apiFetch("/api/admin/data");
+            await apiFetch(
+                "/api/admin/data"
+            );
 
-        const data =
-            await response.json();
 
         if (!response.ok) {
 
+            const data =
+                await response.json()
+                    .catch(() => ({}));
+
+
             throw new Error(
-                data.detail || "Failed to load data"
+                data.detail ||
+                "Unable to load admin data."
             );
 
         }
 
-        currentData = data;
 
-        renderFacultyAdmin(
-            data.faculty || []
-        );
+        const data =
+            await response.json();
 
-        renderPeopleAdmin(
-            data.toppers || [],
-            "topperList",
-            "topper"
-        );
 
-        renderPeopleAdmin(
-            data.alumni || [],
-            "alumniList",
-            "alumni"
-        );
+        currentData = {
 
-        renderReviewsAdmin(
-            data.testimonials || []
-        );
+            faculty:
+                Array.isArray(data.faculty)
+                    ? data.faculty
+                    : [],
 
-        updateCounts();
+            toppers:
+                Array.isArray(data.toppers)
+                    ? data.toppers
+                    : [],
+
+            alumni:
+                Array.isArray(data.alumni)
+                    ? data.alumni
+                    : [],
+
+            testimonials:
+                Array.isArray(data.testimonials)
+                    ? data.testimonials
+                    : []
+
+        };
+
+
+        renderAdminData();
+
 
     } catch (error) {
 
-        console.error(error);
-
-        alert(
-            "Unable to load admin data: " +
-            error.message
+        console.error(
+            "Admin data error:",
+            error
         );
 
     }
-}
-
-
-// =========================================================
-// COUNTS
-// =========================================================
-
-function updateCounts() {
-
-    document.getElementById(
-        "facultyCount"
-    ).textContent =
-        currentData.faculty?.length || 0;
-
-
-    document.getElementById(
-        "topCount"
-    ).textContent =
-        currentData.toppers?.length || 0;
-
-
-    document.getElementById(
-        "alumniCount"
-    ).textContent =
-        currentData.alumni?.length || 0;
-
-
-    document.getElementById(
-        "reviewCount"
-    ).textContent =
-        currentData.testimonials?.length || 0;
-
-
-    document.getElementById(
-        "galleryCount"
-    ).textContent =
-        galleryData.length || 0;
 
 }
 
 
-// =========================================================
-// FACULTY
-// =========================================================
+
+/* =====================================================
+   RENDER ADMIN DATA
+===================================================== */
+
+function renderAdminData() {
+
+    renderFacultyList();
+
+    renderTopperList();
+
+    renderAlumniList();
+
+    renderReviewList();
+
+    updateDashboardCounts();
+
+}
+
+
+
+/* =====================================================
+   DASHBOARD COUNTS
+===================================================== */
+
+function updateDashboardCounts() {
+
+    setText(
+        "facultyCount",
+        currentData.faculty.length
+    );
+
+
+    setText(
+        "topCount",
+        currentData.toppers.length
+    );
+
+
+    setText(
+        "alumniCount",
+        currentData.alumni.length
+    );
+
+
+    setText(
+        "reviewCount",
+        currentData.testimonials.length
+    );
+
+
+    setText(
+        "galleryCount",
+        galleryData.length
+    );
+
+}
+
+
+
+function setText(
+    id,
+    value
+) {
+
+    const element =
+        document.getElementById(id);
+
+
+    if (element) {
+
+        element.textContent =
+            value;
+
+    }
+
+}
+
+
+
+/* =====================================================
+   ADD FACULTY
+===================================================== */
 
 async function addFaculty(event) {
 
     event.preventDefault();
 
+
     const form =
         event.target;
 
+
     const formData =
         new FormData(form);
+
 
     try {
 
@@ -283,111 +611,157 @@ async function addFaculty(event) {
                 }
             );
 
+
         const data =
             await response.json();
+
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Failed to add faculty"
+                data.detail ||
+                "Unable to add faculty."
             );
 
         }
 
+
         alert(
-            "Faculty added successfully!"
+            "Faculty added successfully."
         );
+
 
         form.reset();
 
+
         await loadAdminData();
+
 
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Failed: " +
             error.message
         );
 
     }
+
 }
 
 
-function renderFacultyAdmin(faculty) {
+
+/* =====================================================
+   FACULTY LIST
+===================================================== */
+
+function renderFacultyList() {
 
     const container =
         document.getElementById(
             "facultyList"
         );
 
-    if (!faculty.length) {
 
-        container.innerHTML =
-            `<div class="empty-state">
-                No faculty added yet.
-            </div>`;
+    if (!container) {
 
         return;
+
+    }
+
+
+    if (!currentData.faculty.length) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                No faculty added yet.
+            </div>
+            `;
+
+        return;
+
     }
 
 
     container.innerHTML =
-        faculty.map(teacher => {
+        currentData.faculty
+            .map(
+                faculty => {
 
-            const image =
-                teacher.photo
-                    ? `<img src="${getImageUrl(teacher.photo)}" alt="">`
-                    : `<div class="admin-placeholder">V</div>`;
+                    const image =
+                        faculty.photo
+                            ? `
+                                <img
+                                    src="${escapeAttribute(faculty.photo)}"
+                                    alt=""
+                                >
+                              `
+                            : "";
 
-            return `
 
-                <div class="admin-item">
+                    return `
+                        <div class="admin-item">
 
-                    <div class="admin-item-image">
-                        ${image}
-                    </div>
+                            <div class="admin-item-info">
 
-                    <div class="admin-item-content">
+                                ${image}
 
-                        <h3>
-                            ${escapeHTML(teacher.name)}
-                        </h3>
+                                <div>
 
-                        <strong>
-                            ${escapeHTML(teacher.subject)}
-                        </strong>
+                                    <h3>
+                                        ${escapeHTML(faculty.name)}
+                                    </h3>
 
-                        <p>
-                            ${escapeHTML(
-                                teacher.description || ""
-                            )}
-                        </p>
+                                    <p>
+                                        ${escapeHTML(faculty.subject || "")}
+                                    </p>
 
-                    </div>
+                                    <small>
+                                        ${escapeHTML(faculty.description || "")}
+                                    </small>
 
-                    <button
-                        class="delete-btn"
-                        onclick="deleteFaculty(${teacher.id})"
-                    >
-                        Delete
-                    </button>
+                                </div>
 
-                </div>
+                            </div>
 
-            `;
 
-        }).join("");
+                            <button
+                                type="button"
+                                class="delete-btn"
+                                onclick="deleteFaculty(${Number(faculty.id)})"
+                            >
+                                Delete
+                            </button>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
 
 }
 
 
-async function deleteFaculty(id) {
+
+/* =====================================================
+   DELETE FACULTY
+===================================================== */
+
+async function deleteFaculty(
+    id
+) {
 
     if (
         !confirm(
-            "Are you sure you want to delete this faculty?"
+            "Delete this faculty member?"
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     try {
@@ -400,37 +774,42 @@ async function deleteFaculty(id) {
                 }
             );
 
+
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
+
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Delete failed"
+                data.detail ||
+                "Unable to delete faculty."
             );
 
         }
 
-        alert(
-            "Faculty deleted successfully!"
-        );
 
         await loadAdminData();
 
+
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Delete failed: " +
             error.message
         );
 
     }
+
 }
 
 
-// =========================================================
-// TOPPERS / ALUMNI
-// =========================================================
+
+/* =====================================================
+   ADD TOPPER / ALUMNI
+===================================================== */
 
 async function addPerson(
     event,
@@ -439,16 +818,20 @@ async function addPerson(
 
     event.preventDefault();
 
+
     const form =
         event.target;
 
+
     const formData =
         new FormData(form);
+
 
     formData.append(
         "type",
         type
     );
+
 
     try {
 
@@ -461,178 +844,382 @@ async function addPerson(
                 }
             );
 
+
         const data =
             await response.json();
+
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Failed"
+                data.detail ||
+                `Unable to add ${type}.`
             );
 
         }
 
+
         alert(
-            `${type} added successfully!`
+            type === "topper"
+                ? "Topper added successfully."
+                : "Alumni added successfully."
         );
+
 
         form.reset();
 
+
         await loadAdminData();
+
 
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Failed: " +
             error.message
         );
 
     }
+
 }
 
 
-function renderPeopleAdmin(
-    people,
-    containerId,
-    type
-) {
+
+/* =====================================================
+   TOPPER LIST
+===================================================== */
+
+function renderTopperList() {
 
     const container =
         document.getElementById(
-            containerId
+            "topperList"
         );
 
-    if (!people.length) {
 
-        container.innerHTML =
-            `<div class="empty-state">
-                No ${type}s added yet.
-            </div>`;
+    if (!container) {
 
         return;
+
+    }
+
+
+    if (!currentData.toppers.length) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                No toppers added yet.
+            </div>
+            `;
+
+        return;
+
     }
 
 
     container.innerHTML =
-        people.map(person => {
+        currentData.toppers
+            .map(
+                topper => {
 
-            const image =
-                person.photo
-                    ? `<img src="${getImageUrl(person.photo)}" alt="">`
-                    : `<div class="admin-placeholder">V</div>`;
+                    const image =
+                        topper.photo
+                            ? `
+                                <img
+                                    src="${escapeAttribute(topper.photo)}"
+                                    alt=""
+                                >
+                              `
+                            : "";
 
-            return `
 
-                <div class="admin-item">
+                    return `
+                        <div class="admin-item">
 
-                    <div class="admin-item-image">
+                            <div class="admin-item-info">
 
-                        ${image}
+                                ${image}
 
-                    </div>
+                                <div>
 
-                    <div class="admin-item-content">
+                                    <h3>
+                                        ${escapeHTML(topper.name)}
+                                    </h3>
 
-                        <h3>
-                            ${escapeHTML(person.name)}
-                        </h3>
+                                    <p>
+                                        ${escapeHTML(topper.details || "")}
+                                    </p>
 
-                        <strong>
-                            ${escapeHTML(
-                                person.details || ""
-                            )}
-                        </strong>
+                                    <small>
+                                        ${escapeHTML(topper.review || "")}
+                                    </small>
 
-                        <p>
-                            ${escapeHTML(
-                                person.review || ""
-                            )}
-                        </p>
+                                </div>
 
-                    </div>
+                            </div>
 
-                    <button
-                        class="delete-btn"
-                        onclick="deletePerson(
-                            '${type}',
-                            ${person.id}
-                        )"
-                    >
-                        Delete
-                    </button>
 
-                </div>
+                            <button
+                                type="button"
+                                class="delete-btn"
+                                onclick="deleteTopper(${Number(topper.id)})"
+                            >
+                                Delete
+                            </button>
 
-            `;
+                        </div>
+                    `;
 
-        }).join("");
+                }
+            )
+            .join("");
 
 }
 
 
-async function deletePerson(
-    type,
+
+/* =====================================================
+   DELETE TOPPER
+===================================================== */
+
+async function deleteTopper(
     id
 ) {
 
     if (
         !confirm(
-            `Are you sure you want to delete this ${type}?`
+            "Delete this topper?"
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     try {
 
         const response =
             await apiFetch(
-                `/api/admin/${type}/${id}`,
+                `/api/admin/topper/${id}`,
                 {
                     method: "DELETE"
                 }
             );
 
+
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
+
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Delete failed"
+                data.detail ||
+                "Unable to delete topper."
             );
 
         }
 
-        alert(
-            `${type} deleted successfully!`
-        );
 
         await loadAdminData();
 
+
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Delete failed: " +
             error.message
         );
 
     }
+
 }
 
 
-// =========================================================
-// REVIEWS
-// =========================================================
 
-async function addReview(event) {
+/* =====================================================
+   ALUMNI LIST
+===================================================== */
+
+function renderAlumniList() {
+
+    const container =
+        document.getElementById(
+            "alumniList"
+        );
+
+
+    if (!container) {
+
+        return;
+
+    }
+
+
+    if (!currentData.alumni.length) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                No alumni added yet.
+            </div>
+            `;
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        currentData.alumni
+            .map(
+                alumni => {
+
+                    const image =
+                        alumni.photo
+                            ? `
+                                <img
+                                    src="${escapeAttribute(alumni.photo)}"
+                                    alt=""
+                                >
+                              `
+                            : "";
+
+
+                    return `
+                        <div class="admin-item">
+
+                            <div class="admin-item-info">
+
+                                ${image}
+
+                                <div>
+
+                                    <h3>
+                                        ${escapeHTML(alumni.name)}
+                                    </h3>
+
+                                    <p>
+                                        ${escapeHTML(alumni.details || "")}
+                                    </p>
+
+                                    <small>
+                                        ${escapeHTML(alumni.review || "")}
+                                    </small>
+
+                                </div>
+
+                            </div>
+
+
+                            <button
+                                type="button"
+                                class="delete-btn"
+                                onclick="deleteAlumni(${Number(alumni.id)})"
+                            >
+                                Delete
+                            </button>
+
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
+
+}
+
+
+
+/* =====================================================
+   DELETE ALUMNI
+===================================================== */
+
+async function deleteAlumni(
+    id
+) {
+
+    if (
+        !confirm(
+            "Delete this alumni?"
+        )
+    ) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await apiFetch(
+                `/api/admin/alumni/${id}`,
+                {
+                    method: "DELETE"
+                }
+            );
+
+
+        const data =
+            await response.json()
+                .catch(() => ({}));
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                data.detail ||
+                "Unable to delete alumni."
+            );
+
+        }
+
+
+        await loadAdminData();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            error.message
+        );
+
+    }
+
+}
+
+
+
+/* =====================================================
+   ADD REVIEW
+===================================================== */
+
+async function addReview(
+    event
+) {
 
     event.preventDefault();
+
 
     const form =
         event.target;
 
-    const formData =
-        new FormData(form);
+
+    const name =
+        form.elements.name.value.trim();
+
+
+    const review =
+        form.elements.review.value.trim();
+
 
     try {
 
@@ -641,106 +1228,152 @@ async function addReview(event) {
                 "/api/admin/testimonials",
                 {
                     method: "POST",
-                    body: formData
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            name,
+                            review
+                        })
                 }
             );
+
 
         const data =
             await response.json();
 
+
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Failed"
+                data.detail ||
+                "Unable to add review."
             );
 
         }
 
+
         alert(
-            "Review added successfully!"
+            "Review added successfully."
         );
+
 
         form.reset();
 
+
         await loadAdminData();
+
 
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Failed: " +
             error.message
         );
 
     }
+
 }
 
 
-function renderReviewsAdmin(
-    reviews
-) {
+
+/* =====================================================
+   REVIEW LIST
+===================================================== */
+
+function renderReviewList() {
 
     const container =
         document.getElementById(
             "reviewList"
         );
 
-    if (!reviews.length) {
 
-        container.innerHTML =
-            `<div class="empty-state">
-                No reviews added yet.
-            </div>`;
+    if (!container) {
 
         return;
+
+    }
+
+
+    if (!currentData.testimonials.length) {
+
+        container.innerHTML =
+            `
+            <div class="empty-state">
+                No reviews added yet.
+            </div>
+            `;
+
+        return;
+
     }
 
 
     container.innerHTML =
-        reviews.map(review => {
+        currentData.testimonials
+            .map(
+                review => {
 
-            return `
+                    return `
+                        <div class="admin-item">
 
-                <div class="admin-item">
+                            <div class="admin-item-info">
 
-                    <div class="admin-item-content">
+                                <div>
 
-                        <h3>
-                            ${escapeHTML(
-                                review.name
-                            )}
-                        </h3>
+                                    <h3>
+                                        ${escapeHTML(review.name)}
+                                    </h3>
 
-                        <p>
-                            ${escapeHTML(
-                                review.review
-                            )}
-                        </p>
+                                    <p>
+                                        ${escapeHTML(review.review)}
+                                    </p>
 
-                    </div>
+                                </div>
 
-                    <button
-                        class="delete-btn"
-                        onclick="deleteReview(${review.id})"
-                    >
-                        Delete
-                    </button>
+                            </div>
 
-                </div>
 
-            `;
+                            <button
+                                type="button"
+                                class="delete-btn"
+                                onclick="deleteReview(${Number(review.id)})"
+                            >
+                                Delete
+                            </button>
 
-        }).join("");
+                        </div>
+                    `;
+
+                }
+            )
+            .join("");
 
 }
 
 
-async function deleteReview(id) {
+
+/* =====================================================
+   DELETE REVIEW
+===================================================== */
+
+async function deleteReview(
+    id
+) {
 
     if (
         !confirm(
-            "Are you sure you want to delete this review?"
+            "Delete this review?"
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     try {
@@ -753,37 +1386,42 @@ async function deleteReview(id) {
                 }
             );
 
+
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
+
 
         if (!response.ok) {
 
             throw new Error(
-                data.detail || "Delete failed"
+                data.detail ||
+                "Unable to delete review."
             );
 
         }
 
-        alert(
-            "Review deleted successfully!"
-        );
 
         await loadAdminData();
 
+
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Delete failed: " +
             error.message
         );
 
     }
+
 }
 
 
-// =========================================================
-// GALLERY
-// =========================================================
+
+/* =====================================================
+   GALLERY LOAD
+===================================================== */
 
 async function loadAdminGallery() {
 
@@ -794,23 +1432,56 @@ async function loadAdminGallery() {
                 "/api/admin/gallery"
             );
 
-        const data =
-            await response.json();
 
         if (!response.ok) {
 
+            const data =
+                await response.json()
+                    .catch(() => ({}));
+
+
             throw new Error(
-                data.detail || "Failed to load gallery"
+                data.detail ||
+                "Unable to load gallery."
             );
 
         }
 
-        galleryData =
-            data.gallery || [];
 
-        renderAdminGallery();
+        const data =
+            await response.json();
 
-        updateCounts();
+
+        if (Array.isArray(data)) {
+
+            galleryData =
+                data;
+
+        } else if (
+            Array.isArray(data.events)
+        ) {
+
+            galleryData =
+                data.events;
+
+        } else if (
+            Array.isArray(data.gallery)
+        ) {
+
+            galleryData =
+                data.gallery;
+
+        } else {
+
+            galleryData = [];
+
+        }
+
+
+        renderGallery();
+
+        updateDashboardCounts();
+
 
     } catch (error) {
 
@@ -820,22 +1491,29 @@ async function loadAdminGallery() {
         );
 
     }
+
 }
 
 
-// =========================================================
-// CREATE EVENT
-// =========================================================
 
-async function createGalleryEvent(event) {
+/* =====================================================
+   CREATE GALLERY EVENT
+===================================================== */
+
+async function createGalleryEvent(
+    event
+) {
 
     event.preventDefault();
+
 
     const form =
         event.target;
 
+
     const formData =
         new FormData(form);
+
 
     try {
 
@@ -848,268 +1526,291 @@ async function createGalleryEvent(event) {
                 }
             );
 
+
         const data =
             await response.json();
+
 
         if (!response.ok) {
 
             throw new Error(
                 data.detail ||
-                "Failed to create event"
+                "Unable to create gallery event."
             );
 
         }
 
+
         alert(
-            "Gallery event created successfully!"
+            "Gallery event created successfully."
         );
+
 
         form.reset();
 
+
         await loadAdminGallery();
+
 
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Failed: " +
             error.message
         );
 
     }
+
 }
 
 
-// =========================================================
-// RENDER GALLERY
-// =========================================================
 
-function renderAdminGallery() {
+/* =====================================================
+   RENDER GALLERY
+===================================================== */
+
+function renderGallery() {
 
     const container =
         document.getElementById(
             "galleryAdminList"
         );
 
+
+    if (!container) {
+
+        return;
+
+    }
+
+
     if (!galleryData.length) {
 
         container.innerHTML =
             `
             <div class="empty-state">
-                <h3>
-                    No gallery events yet
-                </h3>
-
-                <p>
-                    Create your first event above.
-                </p>
+                No gallery events created yet.
             </div>
             `;
 
         return;
+
     }
 
 
     container.innerHTML =
-        galleryData.map(event => {
+        galleryData
+            .map(
+                event => {
 
-            const cover =
-                event.cover_photo
-                    ? `<img
-                        src="${event.cover_photo}"
-                        alt=""
-                    >`
-                    : `<div class="gallery-admin-cover-placeholder">
-                        📷
-                    </div>`;
+                    const eventId =
+                        Number(
+                            event.id
+                        );
 
 
-            const photos =
-                event.photos || [];
+                    const photos =
+                        Array.isArray(
+                            event.photos
+                        )
+                            ? event.photos
+                            : [];
 
 
-            return `
+                    const cover =
+                        event.cover_photo ||
+                        event.cover ||
+                        "";
 
-                <div class="gallery-event-admin">
 
-                    <div class="gallery-event-header">
+                    const photosHTML =
+                        photos
+                            .map(
+                                photo => {
 
-                        <div>
+                                    const photoId =
+                                        Number(
+                                            photo.id
+                                        );
 
-                            <h3>
-                                ${escapeHTML(
-                                    event.title
-                                )}
-                            </h3>
+
+                                    const photoURL =
+                                        photo.url ||
+                                        photo.photo ||
+                                        photo.image_url ||
+                                        photo.photo_url ||
+                                        "";
+
+
+                                    return `
+                                        <div class="gallery-photo-item">
+
+                                            <img
+                                                src="${escapeAttribute(photoURL)}"
+                                                alt=""
+                                            >
+
+                                            <div class="gallery-photo-actions">
+
+                                                <button
+                                                    type="button"
+                                                    onclick="setGalleryCover(${eventId}, ${photoId})"
+                                                >
+                                                    Set Cover
+                                                </button>
+
+                                                <button
+                                                    type="button"
+                                                    class="delete-btn"
+                                                    onclick="deleteGalleryPhoto(${photoId})"
+                                                >
+                                                    Delete
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+                                    `;
+
+                                }
+                            )
+                            .join("");
+
+
+                    return `
+                        <div class="gallery-admin-card">
+
+                            <div class="gallery-admin-header">
+
+                                <div>
+
+                                    <h3>
+                                        ${escapeHTML(
+                                            event.title ||
+                                            event.name ||
+                                            "Gallery Event"
+                                        )}
+                                    </h3>
+
+                                    <p>
+                                        ${escapeHTML(
+                                            event.event_date ||
+                                            ""
+                                        )}
+                                    </p>
+
+                                    <small>
+                                        ${escapeHTML(
+                                            event.description ||
+                                            ""
+                                        )}
+                                    </small>
+
+                                </div>
+
+
+                                <button
+                                    type="button"
+                                    class="delete-btn"
+                                    onclick="deleteGalleryEvent(${eventId})"
+                                >
+                                    Delete Event
+                                </button>
+
+                            </div>
+
 
                             ${
-                                event.event_date
-                                    ? `<span>
-                                        📅 ${escapeHTML(
-                                            event.event_date
-                                        )}
-                                    </span>`
+                                cover
+                                    ? `
+                                        <div class="gallery-cover-preview">
+
+                                            <img
+                                                src="${escapeAttribute(cover)}"
+                                                alt=""
+                                            >
+
+                                            <span>
+                                                Current Cover
+                                            </span>
+
+                                        </div>
+                                      `
                                     : ""
                             }
 
-                            <p>
-                                ${escapeHTML(
-                                    event.description || ""
-                                )}
-                            </p>
 
-                            <strong>
-                                ${photos.length} Photos
-                            </strong>
+                            <div class="gallery-upload-box">
+
+                                <form
+                                    onsubmit="uploadGalleryPhotos(event, ${eventId})"
+                                    enctype="multipart/form-data"
+                                >
+
+                                    <input
+                                        type="file"
+                                        name="photos"
+                                        accept=".jpg,.jpeg,.png,.webp"
+                                        multiple
+                                        required
+                                    >
+
+
+                                    <button
+                                        type="submit"
+                                        class="primary-btn"
+                                    >
+                                        Upload Photos
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+
+                            <div class="gallery-admin-grid">
+
+                                ${
+                                    photosHTML ||
+                                    `
+                                    <div class="empty-state">
+                                        No photos uploaded yet.
+                                    </div>
+                                    `
+                                }
+
+                            </div>
 
                         </div>
+                    `;
 
-
-                        <button
-                            class="delete-btn"
-                            onclick="deleteGalleryEvent(${event.id})"
-                        >
-                            Delete Event
-                        </button>
-
-                    </div>
-
-
-                    <div class="gallery-cover-preview">
-
-                        ${cover}
-
-                    </div>
-
-
-                    <div class="gallery-upload-box">
-
-                        <label>
-                            Add Photos
-                        </label>
-
-                        <input
-                            type="file"
-                            id="galleryFiles-${event.id}"
-                            accept=".jpg,.jpeg,.png,.webp"
-                            multiple
-                        >
-
-                        <button
-                            class="primary-btn"
-                            onclick="uploadGalleryPhotos(${event.id})"
-                        >
-                            Upload Photos
-                        </button>
-
-                    </div>
-
-
-                    <div class="gallery-admin-photos">
-
-                        ${
-                            photos.length
-                                ? photos.map(photo => `
-
-                                    <div class="gallery-admin-photo">
-
-                                        <img
-                                            src="${photo.photo_url}"
-                                            alt=""
-                                        >
-
-                                        ${
-                                            event.cover_photo === photo.photo_url
-                                                ? `<span class="cover-badge">
-                                                    COVER
-                                                </span>`
-                                                : ""
-                                        }
-
-                                        <div class="gallery-photo-actions">
-
-                                            ${
-                                                event.cover_photo !== photo.photo_url
-                                                    ? `<button
-                                                        onclick="setGalleryCover(
-                                                            ${event.id},
-                                                            ${photo.id}
-                                                        )"
-                                                    >
-                                                        Set Cover
-                                                    </button>`
-                                                    : ""
-                                            }
-
-                                            <button
-                                                class="danger-small"
-                                                onclick="deleteGalleryPhoto(
-                                                    ${photo.id}
-                                                )"
-                                            >
-                                                Delete
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-                                `).join("")
-                                : `<div class="gallery-no-photos">
-                                    No photos uploaded yet.
-                                </div>`
-                        }
-
-                    </div>
-
-                </div>
-
-            `;
-
-        }).join("");
+                }
+            )
+            .join("");
 
 }
 
 
-// =========================================================
-// UPLOAD PHOTOS
-// =========================================================
+
+/* =====================================================
+   UPLOAD GALLERY PHOTOS
+===================================================== */
 
 async function uploadGalleryPhotos(
+    event,
     eventId
 ) {
 
-    const fileInput =
-        document.getElementById(
-            `galleryFiles-${eventId}`
-        );
+    event.preventDefault();
 
-    if (
-        !fileInput ||
-        !fileInput.files.length
-    ) {
 
-        alert(
-            "Please select one or more photos."
-        );
-
-        return;
-    }
+    const form =
+        event.target;
 
 
     const formData =
-        new FormData();
-
-
-    Array.from(
-        fileInput.files
-    ).forEach(file => {
-
-        formData.append(
-            "photos",
-            file
-        );
-
-    });
+        new FormData(form);
 
 
     try {
@@ -1123,28 +1824,37 @@ async function uploadGalleryPhotos(
                 }
             );
 
+
         const data =
             await response.json();
+
 
         if (!response.ok) {
 
             throw new Error(
                 data.detail ||
-                "Upload failed"
+                "Unable to upload gallery photos."
             );
 
         }
 
+
         alert(
-            `${data.count} photo(s) uploaded successfully!`
+            "Photos uploaded successfully."
         );
+
+
+        form.reset();
+
 
         await loadAdminGallery();
 
+
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Upload failed: " +
             error.message
         );
 
@@ -1153,9 +1863,10 @@ async function uploadGalleryPhotos(
 }
 
 
-// =========================================================
-// SET COVER
-// =========================================================
+
+/* =====================================================
+   SET GALLERY COVER
+===================================================== */
 
 async function setGalleryCover(
     eventId,
@@ -1172,24 +1883,30 @@ async function setGalleryCover(
                 }
             );
 
+
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
+
 
         if (!response.ok) {
 
             throw new Error(
                 data.detail ||
-                "Failed to set cover"
+                "Unable to set cover."
             );
 
         }
 
+
         await loadAdminGallery();
+
 
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Failed: " +
             error.message
         );
 
@@ -1198,9 +1915,10 @@ async function setGalleryCover(
 }
 
 
-// =========================================================
-// DELETE PHOTO
-// =========================================================
+
+/* =====================================================
+   DELETE GALLERY PHOTO
+===================================================== */
 
 async function deleteGalleryPhoto(
     photoId
@@ -1208,9 +1926,13 @@ async function deleteGalleryPhoto(
 
     if (
         !confirm(
-            "Delete this gallery photo?"
+            "Delete this photo?"
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     try {
@@ -1223,24 +1945,30 @@ async function deleteGalleryPhoto(
                 }
             );
 
+
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
+
 
         if (!response.ok) {
 
             throw new Error(
                 data.detail ||
-                "Delete failed"
+                "Unable to delete photo."
             );
 
         }
 
+
         await loadAdminGallery();
+
 
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Delete failed: " +
             error.message
         );
 
@@ -1249,9 +1977,10 @@ async function deleteGalleryPhoto(
 }
 
 
-// =========================================================
-// DELETE EVENT
-// =========================================================
+
+/* =====================================================
+   DELETE GALLERY EVENT
+===================================================== */
 
 async function deleteGalleryEvent(
     eventId
@@ -1259,9 +1988,13 @@ async function deleteGalleryEvent(
 
     if (
         !confirm(
-            "Delete this complete event and all its photos?"
+            "Delete this gallery event and all its photos?"
         )
-    ) return;
+    ) {
+
+        return;
+
+    }
 
 
     try {
@@ -1274,28 +2007,30 @@ async function deleteGalleryEvent(
                 }
             );
 
+
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
+
 
         if (!response.ok) {
 
             throw new Error(
                 data.detail ||
-                "Delete failed"
+                "Unable to delete gallery event."
             );
 
         }
 
-        alert(
-            "Gallery event deleted successfully!"
-        );
 
         await loadAdminGallery();
 
+
     } catch (error) {
 
+        console.error(error);
+
         alert(
-            "Delete failed: " +
             error.message
         );
 
@@ -1304,53 +2039,68 @@ async function deleteGalleryEvent(
 }
 
 
-// =========================================================
-// IMAGE URL
-// =========================================================
 
-function getImageUrl(
-    photo
-) {
-
-    if (!photo) {
-        return "";
-    }
-
-    if (
-        photo.startsWith("http://") ||
-        photo.startsWith("https://")
-    ) {
-
-        return photo;
-
-    }
-
-    return photo;
-
-}
-
-
-// =========================================================
-// ESCAPE HTML
-// =========================================================
+/* =====================================================
+   ESCAPE HTML
+===================================================== */
 
 function escapeHTML(
     value
 ) {
 
-    return String(value || "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+    return String(
+        value ?? ""
+    )
+        .replace(
+            /[&<>"']/g,
+            character => {
+
+                const map = {
+
+                    "&":
+                        "&amp;",
+
+                    "<":
+                        "&lt;",
+
+                    ">":
+                        "&gt;",
+
+                    '"':
+                        "&quot;",
+
+                    "'":
+                        "&#039;"
+
+                };
+
+
+                return map[
+                    character
+                ];
+
+            }
+        );
 
 }
 
 
-// =========================================================
-// PAGE LOAD
-// =========================================================
+
+function escapeAttribute(
+    value
+) {
+
+    return escapeHTML(
+        value
+    );
+
+}
+
+
+
+/* =====================================================
+   INITIAL LOAD
+===================================================== */
 
 document.addEventListener(
     "DOMContentLoaded",
@@ -1359,33 +2109,78 @@ document.addEventListener(
         const token =
             getToken();
 
-        if (!token) {
 
+        const loginPage =
             document.getElementById(
                 "loginPage"
-            ).style.display = "flex";
+            );
 
+
+        const adminApp =
             document.getElementById(
                 "adminApp"
-            ).style.display = "none";
+            );
+
+
+        /*
+           IMPORTANT:
+           Never call classList on a
+           missing element.
+        */
+
+        if (!token) {
+
+            if (loginPage) {
+
+                loginPage.style.display =
+                    "flex";
+
+            }
+
+
+            if (adminApp) {
+
+                adminApp.style.display =
+                    "none";
+
+            }
+
 
             return;
 
         }
 
 
-        document.getElementById(
-            "loginPage"
-        ).style.display = "none";
+        if (loginPage) {
 
-        document.getElementById(
-            "adminApp"
-        ).style.display = "flex";
+            loginPage.style.display =
+                "none";
+
+        }
 
 
-        await loadAdminData();
+        if (adminApp) {
 
-        await loadAdminGallery();
+            adminApp.style.display =
+                "flex";
+
+        }
+
+
+        try {
+
+            await loadAdminData();
+
+            await loadAdminGallery();
+
+        } catch (error) {
+
+            console.error(
+                "Initial loading error:",
+                error
+            );
+
+        }
 
     }
 );

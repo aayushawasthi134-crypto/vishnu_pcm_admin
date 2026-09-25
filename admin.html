@@ -12,16 +12,24 @@
 
     <title>Vishnu PCM Admin Panel</title>
 
-    <link rel="stylesheet" href="/assets/admin.css">
+    <link
+        rel="stylesheet"
+        href="/assets/admin.css"
+    >
 
 </head>
 
 
 <body>
 
-    <!-- LOGIN -->
+    <!-- =========================
+         LOGIN
+    ========================== -->
 
-    <div id="loginPage" class="login-page">
+    <div
+        id="loginPage"
+        class="login-page"
+    >
 
         <div class="login-box">
 
@@ -37,7 +45,11 @@
                 Admin Panel
             </p>
 
-            <form onsubmit="login(event)">
+
+            <form
+                id="loginForm"
+                onsubmit="login(event)"
+            >
 
                 <input
                     type="email"
@@ -46,12 +58,14 @@
                     required
                 >
 
+
                 <input
                     type="password"
                     id="password"
                     placeholder="Password"
                     required
                 >
+
 
                 <button
                     type="submit"
@@ -60,19 +74,23 @@
                     Login
                 </button>
 
-            </form>
 
-            <p
-                id="loginError"
-                class="error-message"
-            ></p>
+                <p
+                    id="loginError"
+                    class="error-message"
+                    style="display:none;"
+                ></p>
+
+            </form>
 
         </div>
 
     </div>
 
 
-    <!-- ADMIN APP -->
+    <!-- =========================
+         ADMIN APP
+    ========================== -->
 
     <div
         id="adminApp"
@@ -81,7 +99,9 @@
     >
 
 
-        <!-- SIDEBAR -->
+        <!-- =========================
+             SIDEBAR
+        ========================== -->
 
         <aside class="sidebar">
 
@@ -109,49 +129,64 @@
             <nav class="sidebar-nav">
 
                 <button
+                    type="button"
                     onclick="showTab('dashboard')"
                 >
                     📊 Dashboard
                 </button>
 
+
                 <button
+                    type="button"
                     onclick="showTab('faculty')"
                 >
                     👨‍🏫 Faculty
                 </button>
 
+
                 <button
+                    type="button"
                     onclick="showTab('toppers')"
                 >
                     🏆 Toppers
                 </button>
 
+
                 <button
+                    type="button"
                     onclick="showTab('alumni')"
                 >
                     🎓 Alumni
                 </button>
 
+
                 <button
+                    type="button"
                     onclick="showTab('reviews')"
                 >
                     ⭐ Reviews
                 </button>
 
+
                 <button
+                    type="button"
                     onclick="showTab('gallery')"
                 >
                     🖼️ Gallery
                 </button>
 
+
                 <a
                     href="https://vishnupcmwebsite.vercel.app"
                     target="_blank"
+                    rel="noopener noreferrer"
                 >
                     🌐 View Website
                 </a>
 
+
                 <button
+                    type="button"
                     onclick="logout()"
                     class="logout-btn"
                 >
@@ -163,7 +198,9 @@
         </aside>
 
 
-        <!-- MAIN -->
+        <!-- =========================
+             MAIN
+        ========================== -->
 
         <main class="admin-main">
 
@@ -176,7 +213,9 @@
             </header>
 
 
-            <!-- DASHBOARD -->
+            <!-- =========================
+                 DASHBOARD
+            ========================== -->
 
             <section
                 id="dashboard"
@@ -184,6 +223,7 @@
             >
 
                 <div class="stats-grid">
+
 
                     <div class="stat-card">
 
@@ -269,6 +309,7 @@
 
                     </div>
 
+
                 </div>
 
 
@@ -287,7 +328,9 @@
             </section>
 
 
-            <!-- FACULTY -->
+            <!-- =========================
+                 FACULTY
+            ========================== -->
 
             <section
                 id="faculty"
@@ -309,6 +352,7 @@
                         Add Faculty
                     </h3>
 
+
                     <form
                         onsubmit="addFaculty(event)"
                         enctype="multipart/form-data"
@@ -321,6 +365,7 @@
                             required
                         >
 
+
                         <input
                             type="text"
                             name="subject"
@@ -328,16 +373,19 @@
                             required
                         >
 
+
                         <textarea
                             name="description"
                             placeholder="Description"
                         ></textarea>
+
 
                         <input
                             type="file"
                             name="photo"
                             accept=".jpg,.jpeg,.png,.webp"
                         >
+
 
                         <button
                             type="submit"
@@ -359,7 +407,9 @@
             </section>
 
 
-            <!-- TOPPERS -->
+            <!-- =========================
+                 TOPPERS
+            ========================== -->
 
             <section
                 id="toppers"
@@ -371,6 +421,7 @@
                     <h3>
                         Add Topper
                     </h3>
+
 
                     <form
                         onsubmit="addPerson(event, 'topper')"
@@ -384,22 +435,26 @@
                             required
                         >
 
+
                         <input
                             type="text"
                             name="details"
                             placeholder="Class / Board / Percentage"
                         >
 
+
                         <textarea
                             name="review"
                             placeholder="Student Review"
                         ></textarea>
+
 
                         <input
                             type="file"
                             name="photo"
                             accept=".jpg,.jpeg,.png,.webp"
                         >
+
 
                         <button
                             type="submit"
@@ -421,7 +476,9 @@
             </section>
 
 
-            <!-- ALUMNI -->
+            <!-- =========================
+                 ALUMNI
+            ========================== -->
 
             <section
                 id="alumni"
@@ -433,6 +490,7 @@
                     <h3>
                         Add Alumni
                     </h3>
+
 
                     <form
                         onsubmit="addPerson(event, 'alumni')"
@@ -446,22 +504,26 @@
                             required
                         >
 
+
                         <input
                             type="text"
                             name="details"
                             placeholder="Batch / Details"
                         >
 
+
                         <textarea
                             name="review"
                             placeholder="Alumni Review"
                         ></textarea>
+
 
                         <input
                             type="file"
                             name="photo"
                             accept=".jpg,.jpeg,.png,.webp"
                         >
+
 
                         <button
                             type="submit"
@@ -483,7 +545,9 @@
             </section>
 
 
-            <!-- REVIEWS -->
+            <!-- =========================
+                 REVIEWS
+            ========================== -->
 
             <section
                 id="reviews"
@@ -496,6 +560,7 @@
                         Add Review
                     </h3>
 
+
                     <form
                         onsubmit="addReview(event)"
                     >
@@ -507,11 +572,13 @@
                             required
                         >
 
+
                         <textarea
                             name="review"
                             placeholder="Review"
                             required
                         ></textarea>
+
 
                         <button
                             type="submit"
@@ -533,7 +600,9 @@
             </section>
 
 
-            <!-- GALLERY -->
+            <!-- =========================
+                 GALLERY
+            ========================== -->
 
             <section
                 id="gallery"
@@ -565,6 +634,7 @@
                         Create Gallery Event
                     </h3>
 
+
                     <form
                         onsubmit="createGalleryEvent(event)"
                         enctype="multipart/form-data"
@@ -577,26 +647,31 @@
                             required
                         >
 
+
                         <input
                             type="text"
                             name="event_date"
                             placeholder="Event Date e.g. 5 September 2026"
                         >
 
+
                         <textarea
                             name="description"
                             placeholder="Event Description"
                         ></textarea>
 
+
                         <label class="file-label">
                             Cover Photo
                         </label>
+
 
                         <input
                             type="file"
                             name="cover_photo"
                             accept=".jpg,.jpeg,.png,.webp"
                         >
+
 
                         <button
                             type="submit"
@@ -624,7 +699,9 @@
     </div>
 
 
-   <script src="/assets/admin.js"></script>
+    <!-- JAVASCRIPT -->
+
+    <script src="/assets/admin.js"></script>
 
 </body>
 
