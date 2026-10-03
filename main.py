@@ -49,10 +49,14 @@ if USE_POSTGRES:
 
 def get_db():
     if USE_POSTGRES:
-        return psycopg.connect(
+        connection = psycopg.connect(
             DATABASE_URL,
             row_factory=dict_row
         )
+
+        connection.execute("SET search_path TO public")
+
+        return connection
 
     connection = sqlite3.connect(DB)
     connection.row_factory = sqlite3.Row
