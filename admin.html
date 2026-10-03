@@ -10,737 +10,1099 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Vishnu PCM Admin Panel</title>
+    <title>Vishnu PCM Classes - Admin Panel</title>
 
     <link
         rel="stylesheet"
-        href="/assets/admin.css"
+        href="/assets/admin.css?v=3"
     >
 
 </head>
 
-
 <body>
 
 
-    <!-- =====================================================
-         LOGIN
-    ====================================================== -->
+<!-- =====================================================
+     LOGIN
+===================================================== -->
 
-    <div
-        id="loginPage"
-        class="login-page"
-    >
+<div
+    id="loginPage"
+    class="login-page"
+>
 
-        <div class="login-box">
+    <div class="login-card">
 
-            <div class="login-logo">
-                V
-            </div>
+        <div class="login-logo">
+            VPC
+        </div>
 
-            <h1>
-                Vishnu PCM Classes
-            </h1>
+        <h1>Vishnu PCM Classes</h1>
 
-            <p>
-                Admin Panel
-            </p>
+        <p class="login-subtitle">
+            Admin Panel
+        </p>
 
+        <form
+            id="loginForm"
+            onsubmit="login(event)"
+        >
 
-            <form
-                id="loginForm"
-                onsubmit="login(event)"
-            >
+            <div class="form-group">
+
+                <label>Email</label>
 
                 <input
                     type="email"
                     id="email"
-                    placeholder="Admin Email"
-                    autocomplete="username"
+                    placeholder="Admin email"
                     required
                 >
 
+            </div>
+
+
+            <div class="form-group">
+
+                <label>Password</label>
 
                 <input
                     type="password"
                     id="password"
                     placeholder="Password"
-                    autocomplete="current-password"
                     required
                 >
 
-
-                <button
-                    type="submit"
-                    class="primary-btn"
-                >
-                    Login
-                </button>
+            </div>
 
 
-                <p
-                    id="loginError"
-                    class="error-message"
-                    style="display:none;"
-                ></p>
+            <div
+                id="loginError"
+                class="error-message"
+            ></div>
 
-            </form>
 
-        </div>
+            <button
+                type="submit"
+                class="primary-btn login-btn"
+            >
+                Login
+            </button>
+
+        </form>
 
     </div>
 
+</div>
 
 
-    <!-- =====================================================
-         ADMIN APP
-    ====================================================== -->
+<!-- =====================================================
+     ADMIN APP
+===================================================== -->
 
-    <div
-        id="adminApp"
-        class="admin-app"
-        style="display:none;"
-    >
+<div
+    id="adminApp"
+    class="admin-app"
+    style="display:none;"
+>
+
+
+    <!-- SIDEBAR -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-brand">
+
+            <div class="brand-icon">
+                VPC
+            </div>
+
+            <div>
+
+                <strong>
+                    Vishnu PCM
+                </strong>
+
+                <span>
+                    Admin Panel
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <button
+                class="nav-btn active"
+                data-section="dashboard"
+                onclick="showSection('dashboard', this)"
+            >
+                <span>📊</span>
+                Dashboard
+            </button>
+
+
+            <button
+                class="nav-btn"
+                data-section="faculty"
+                onclick="showSection('faculty', this)"
+            >
+                <span>👨‍🏫</span>
+                Faculty
+            </button>
+
+
+            <button
+                class="nav-btn"
+                data-section="toppers"
+                onclick="showSection('toppers', this)"
+            >
+                <span>🏆</span>
+                Toppers
+            </button>
+
+
+            <button
+                class="nav-btn"
+                data-section="alumni"
+                onclick="showSection('alumni', this)"
+            >
+                <span>🎓</span>
+                Alumni
+            </button>
+
+
+            <button
+                class="nav-btn"
+                data-section="reviews"
+                onclick="showSection('reviews', this)"
+            >
+                <span>⭐</span>
+                Reviews
+            </button>
+
+
+            <button
+                class="nav-btn"
+                data-section="gallery"
+                onclick="showSection('gallery', this)"
+            >
+                <span>📸</span>
+                Gallery
+            </button>
+
+
+            <a
+                class="nav-btn website-link"
+                href="https://vishnupcmwebsite.vercel.app/"
+                target="_blank"
+            >
+                <span>🌐</span>
+                View Website
+            </a>
+
+
+            <button
+                class="nav-btn logout-nav"
+                onclick="logout()"
+            >
+                <span>🚪</span>
+                Logout
+            </button>
+
+        </nav>
+
+    </aside>
+
+
+    <!-- MAIN -->
+
+    <main class="admin-main">
 
 
         <!-- =================================================
-             SIDEBAR
-        ================================================== -->
+             DASHBOARD
+        ================================================= -->
 
-        <aside class="sidebar">
+        <section
+            id="dashboard"
+            class="admin-section active-section"
+        >
 
-
-            <div class="sidebar-brand">
-
-                <div class="sidebar-logo">
-                    V
-                </div>
+            <div class="section-heading">
 
                 <div>
 
-                    <strong>
-                        Vishnu PCM
-                    </strong>
+                    <span class="eyebrow">
+                        ADMINISTRATION
+                    </span>
 
-                    <small>
-                        Admin Panel
-                    </small>
+                    <h1>
+                        Dashboard
+                    </h1>
+
+                    <p>
+                        Manage your Vishnu PCM Classes website.
+                    </p>
+
+                </div>
+
+                <button
+                    class="secondary-btn"
+                    onclick="refreshAll()"
+                >
+                    ↻ Refresh
+                </button>
+
+            </div>
+
+
+            <div class="stats-grid">
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        👨‍🏫
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Faculty
+                        </span>
+
+                        <strong id="facultyCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        🏆
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Toppers
+                        </span>
+
+                        <strong id="topCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        🎓
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Alumni
+                        </span>
+
+                        <strong id="alumniCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        ⭐
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Reviews
+                        </span>
+
+                        <strong id="reviewCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        📸
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Gallery Events
+                        </span>
+
+                        <strong id="galleryCount">
+                            0
+                        </strong>
+
+                    </div>
 
                 </div>
 
             </div>
 
 
+            <div class="welcome-card">
 
-            <nav class="sidebar-nav">
+                <div>
 
+                    <span class="eyebrow">
+                        CONTENT MANAGEMENT
+                    </span>
 
-                <button
-                    type="button"
-                    onclick="showTab('dashboard')"
-                >
-                    📊 Dashboard
-                </button>
+                    <h2>
+                        Keep your website updated
+                    </h2>
 
+                    <p>
+                        Add new faculty, toppers, alumni,
+                        reviews and gallery events.
+                        You can also edit existing content.
+                    </p>
 
-                <button
-                    type="button"
-                    onclick="showTab('faculty')"
-                >
-                    👨‍🏫 Faculty
-                </button>
+                </div>
 
+            </div>
 
-                <button
-                    type="button"
-                    onclick="showTab('toppers')"
-                >
-                    🏆 Toppers
-                </button>
-
-
-                <button
-                    type="button"
-                    onclick="showTab('alumni')"
-                >
-                    🎓 Alumni
-                </button>
-
-
-                <button
-                    type="button"
-                    onclick="showTab('reviews')"
-                >
-                    ⭐ Reviews
-                </button>
-
-
-                <button
-                    type="button"
-                    onclick="showTab('gallery')"
-                >
-                    🖼️ Gallery
-                </button>
-
-
-                <a
-                    href="https://vishnupcmwebsite.vercel.app"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    🌐 View Website
-                </a>
-
-
-                <button
-                    type="button"
-                    onclick="logout()"
-                    class="logout-btn"
-                >
-                    🚪 Logout
-                </button>
-
-
-            </nav>
-
-        </aside>
-
+        </section>
 
 
         <!-- =================================================
-             MAIN
-        ================================================== -->
+             FACULTY
+        ================================================= -->
 
-        <main class="admin-main">
+        <section
+            id="faculty"
+            class="admin-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="eyebrow">
+                        CONTENT
+                    </span>
+
+                    <h1>
+                        Faculty
+                    </h1>
+
+                    <p>
+                        Add and manage faculty members.
+                    </p>
+
+                </div>
+
+            </div>
 
 
-            <header class="admin-topbar">
+            <div class="admin-form-card">
 
-                <h2 id="pageTitle">
-                    Dashboard
+                <h2>
+                    Add Faculty
                 </h2>
 
-            </header>
+                <form
+                    id="facultyForm"
+                    onsubmit="addFaculty(event)"
+                    enctype="multipart/form-data"
+                >
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label>
+                                Name
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                placeholder="Faculty name"
+                                required
+                            >
+
+                        </div>
 
 
+                        <div class="form-group">
 
-            <!-- =================================================
-                 DASHBOARD
-            ================================================== -->
+                            <label>
+                                Subject
+                            </label>
 
-            <section
-                id="dashboard"
-                class="admin-section active"
-            >
+                            <input
+                                type="text"
+                                name="subject"
+                                placeholder="Subject"
+                                required
+                            >
 
-                <div class="stats-grid">
-
-
-                    <div class="stat-card">
-
-                        <span>
-                            👨‍🏫
-                        </span>
-
-                        <h3 id="facultyCount">
-                            0
-                        </h3>
-
-                        <p>
-                            Faculty
-                        </p>
-
-                    </div>
+                        </div>
 
 
-                    <div class="stat-card">
+                        <div class="form-group full-width">
 
-                        <span>
-                            🏆
-                        </span>
+                            <label>
+                                Description
+                            </label>
 
-                        <h3 id="topCount">
-                            0
-                        </h3>
+                            <textarea
+                                name="description"
+                                placeholder="Faculty description"
+                                rows="4"
+                            ></textarea>
 
-                        <p>
-                            Toppers
-                        </p>
-
-                    </div>
+                        </div>
 
 
-                    <div class="stat-card">
+                        <div class="form-group full-width">
 
-                        <span>
-                            🎓
-                        </span>
+                            <label>
+                                Photo
+                            </label>
 
-                        <h3 id="alumniCount">
-                            0
-                        </h3>
+                            <input
+                                type="file"
+                                name="photo"
+                                accept=".jpg,.jpeg,.png,.webp"
+                            >
 
-                        <p>
-                            Alumni
-                        </p>
-
-                    </div>
-
-
-                    <div class="stat-card">
-
-                        <span>
-                            ⭐
-                        </span>
-
-                        <h3 id="reviewCount">
-                            0
-                        </h3>
-
-                        <p>
-                            Reviews
-                        </p>
+                        </div>
 
                     </div>
 
 
-                    <div class="stat-card">
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                    >
+                        + Add Faculty
+                    </button>
 
-                        <span>
-                            🖼️
-                        </span>
+                </form>
 
-                        <h3 id="galleryCount">
-                            0
-                        </h3>
-
-                        <p>
-                            Gallery Events
-                        </p>
-
-                    </div>
+            </div>
 
 
-                </div>
+            <div
+                id="facultyList"
+                class="admin-list"
+            ></div>
+
+        </section>
 
 
+        <!-- =================================================
+             TOPPERS
+        ================================================= -->
 
-                <div class="welcome-card">
+        <section
+            id="toppers"
+            class="admin-section"
+        >
 
-                    <h2>
-                        Welcome to Vishnu PCM Admin Panel
-                    </h2>
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="eyebrow">
+                        ACHIEVEMENTS
+                    </span>
+
+                    <h1>
+                        Toppers
+                    </h1>
 
                     <p>
-                        Manage your website content from one place.
+                        Manage topper profiles.
                     </p>
 
                 </div>
 
-            </section>
+            </div>
 
 
+            <div class="admin-form-card">
 
-            <!-- =================================================
-                 FACULTY
-            ================================================== -->
+                <h2>
+                    Add Topper
+                </h2>
 
-            <section
-                id="faculty"
-                class="admin-section"
-            >
+                <form
+                    id="topperForm"
+                    onsubmit="addTopper(event)"
+                    enctype="multipart/form-data"
+                >
 
-
-                <div class="section-header">
-
-                    <h2>
-                        Manage Faculty
-                    </h2>
-
-                </div>
-
-
-
-                <div class="admin-form-card">
-
-                    <h3>
-                        Add Faculty
-                    </h3>
-
-
-                    <form
-                        onsubmit="addFaculty(event)"
-                        enctype="multipart/form-data"
+                    <input
+                        type="hidden"
+                        name="type"
+                        value="topper"
                     >
 
-                        <input
-                            type="text"
-                            name="name"
-                            placeholder="Faculty Name"
-                            required
-                        >
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label>
+                                Name
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                required
+                            >
+
+                        </div>
 
 
-                        <input
-                            type="text"
-                            name="subject"
-                            placeholder="Subject"
-                            required
-                        >
+                        <div class="form-group">
+
+                            <label>
+                                Details
+                            </label>
+
+                            <input
+                                type="text"
+                                name="details"
+                                placeholder="Class / achievement"
+                            >
+
+                        </div>
 
 
-                        <textarea
-                            name="description"
-                            placeholder="Description"
-                        ></textarea>
+                        <div class="form-group full-width">
+
+                            <label>
+                                Review / Message
+                            </label>
+
+                            <textarea
+                                name="review"
+                                rows="3"
+                            ></textarea>
+
+                        </div>
 
 
-                        <label class="file-label">
-                            Faculty Photo
-                        </label>
+                        <div class="form-group full-width">
+
+                            <label>
+                                Photo
+                            </label>
+
+                            <input
+                                type="file"
+                                name="photo"
+                                accept=".jpg,.jpeg,.png,.webp"
+                            >
+
+                        </div>
+
+                    </div>
 
 
-                        <input
-                            type="file"
-                            name="photo"
-                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                        >
-
-
-                        <button
-                            type="submit"
-                            class="primary-btn"
-                        >
-                            Add Faculty
-                        </button>
-
-                    </form>
-
-                </div>
-
-
-                <div
-                    id="facultyList"
-                    class="admin-list"
-                ></div>
-
-            </section>
-
-
-
-            <!-- =================================================
-                 TOPPERS
-            ================================================== -->
-
-            <section
-                id="toppers"
-                class="admin-section"
-            >
-
-
-                <div class="admin-form-card">
-
-                    <h3>
-                        Add Topper
-                    </h3>
-
-
-                    <form
-                        onsubmit="addPerson(event, 'topper')"
-                        enctype="multipart/form-data"
+                    <button
+                        type="submit"
+                        class="primary-btn"
                     >
+                        + Add Topper
+                    </button>
 
-                        <input
-                            type="text"
-                            name="name"
-                            placeholder="Student Name"
-                            required
-                        >
+                </form>
 
+            </div>
 
-                        <input
-                            type="text"
-                            name="details"
-                            placeholder="Class / Board / Percentage"
-                        >
 
+            <div
+                id="topperList"
+                class="admin-list"
+            ></div>
 
-                        <textarea
-                            name="review"
-                            placeholder="Student Review"
-                        ></textarea>
+        </section>
 
 
-                        <label class="file-label">
-                            Student Photo
-                        </label>
+        <!-- =================================================
+             ALUMNI
+        ================================================= -->
 
+        <section
+            id="alumni"
+            class="admin-section"
+        >
 
-                        <input
-                            type="file"
-                            name="photo"
-                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                        >
+            <div class="section-heading">
 
+                <div>
 
-                        <button
-                            type="submit"
-                            class="primary-btn"
-                        >
-                            Add Topper
-                        </button>
+                    <span class="eyebrow">
+                        STUDENTS
+                    </span>
 
-                    </form>
-
-                </div>
-
-
-                <div
-                    id="topperList"
-                    class="admin-list"
-                ></div>
-
-            </section>
-
-
-
-            <!-- =================================================
-                 ALUMNI
-            ================================================== -->
-
-            <section
-                id="alumni"
-                class="admin-section"
-            >
-
-
-                <div class="admin-form-card">
-
-                    <h3>
-                        Add Alumni
-                    </h3>
-
-
-                    <form
-                        onsubmit="addPerson(event, 'alumni')"
-                        enctype="multipart/form-data"
-                    >
-
-                        <input
-                            type="text"
-                            name="name"
-                            placeholder="Alumni Name"
-                            required
-                        >
-
-
-                        <input
-                            type="text"
-                            name="details"
-                            placeholder="Batch / Details"
-                        >
-
-
-                        <textarea
-                            name="review"
-                            placeholder="Alumni Review"
-                        ></textarea>
-
-
-                        <label class="file-label">
-                            Alumni Photo
-                        </label>
-
-
-                        <input
-                            type="file"
-                            name="photo"
-                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                        >
-
-
-                        <button
-                            type="submit"
-                            class="primary-btn"
-                        >
-                            Add Alumni
-                        </button>
-
-                    </form>
-
-                </div>
-
-
-                <div
-                    id="alumniList"
-                    class="admin-list"
-                ></div>
-
-            </section>
-
-
-
-            <!-- =================================================
-                 REVIEWS
-            ================================================== -->
-
-            <section
-                id="reviews"
-                class="admin-section"
-            >
-
-
-                <div class="admin-form-card">
-
-                    <h3>
-                        Add Review
-                    </h3>
-
-
-                    <form
-                        onsubmit="addReview(event)"
-                    >
-
-                        <input
-                            type="text"
-                            name="name"
-                            placeholder="Student Name"
-                            required
-                        >
-
-
-                        <textarea
-                            name="review"
-                            placeholder="Review"
-                            required
-                        ></textarea>
-
-
-                        <button
-                            type="submit"
-                            class="primary-btn"
-                        >
-                            Add Review
-                        </button>
-
-                    </form>
-
-                </div>
-
-
-                <div
-                    id="reviewList"
-                    class="admin-list"
-                ></div>
-
-            </section>
-
-
-
-            <!-- =================================================
-                 GALLERY
-            ================================================== -->
-
-            <section
-                id="gallery"
-                class="admin-section"
-            >
-
-
-                <div class="section-header">
-
-                    <h2>
-                        Gallery Management
-                    </h2>
+                    <h1>
+                        Alumni
+                    </h1>
 
                     <p>
-                        Create events and upload multiple photos.
+                        Manage alumni profiles.
                     </p>
 
                 </div>
 
+            </div>
 
 
-                <!-- CREATE EVENT -->
+            <div class="admin-form-card">
 
-                <div class="admin-form-card">
+                <h2>
+                    Add Alumni
+                </h2>
 
-                    <h3>
-                        Create Gallery Event
-                    </h3>
+                <form
+                    id="alumniForm"
+                    onsubmit="addAlumni(event)"
+                    enctype="multipart/form-data"
+                >
 
-
-                    <form
-                        onsubmit="createGalleryEvent(event)"
-                        enctype="multipart/form-data"
+                    <input
+                        type="hidden"
+                        name="type"
+                        value="alumni"
                     >
 
-                        <input
-                            type="text"
-                            name="title"
-                            placeholder="Event Name e.g. Teachers Day"
-                            required
-                        >
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label>
+                                Name
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                required
+                            >
+
+                        </div>
 
 
-                        <input
-                            type="text"
-                            name="event_date"
-                            placeholder="Event Date e.g. 5 September 2026"
-                        >
+                        <div class="form-group">
+
+                            <label>
+                                Details
+                            </label>
+
+                            <input
+                                type="text"
+                                name="details"
+                                placeholder="Course / batch"
+                            >
+
+                        </div>
 
 
-                        <textarea
-                            name="description"
-                            placeholder="Event Description"
-                        ></textarea>
+                        <div class="form-group full-width">
+
+                            <label>
+                                Review
+                            </label>
+
+                            <textarea
+                                name="review"
+                                rows="3"
+                            ></textarea>
+
+                        </div>
 
 
-                        <label class="file-label">
-                            Cover Photo
-                        </label>
+                        <div class="form-group full-width">
+
+                            <label>
+                                Photo
+                            </label>
+
+                            <input
+                                type="file"
+                                name="photo"
+                                accept=".jpg,.jpeg,.png,.webp"
+                            >
+
+                        </div>
+
+                    </div>
 
 
-                        <input
-                            type="file"
-                            name="cover_photo"
-                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                        >
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                    >
+                        + Add Alumni
+                    </button>
+
+                </form>
+
+            </div>
 
 
-                        <button
-                            type="submit"
-                            class="primary-btn"
-                        >
-                            + Create Event
-                        </button>
+            <div
+                id="alumniList"
+                class="admin-list"
+            ></div>
 
-                    </form>
+        </section>
+
+
+        <!-- =================================================
+             REVIEWS
+        ================================================= -->
+
+        <section
+            id="reviews"
+            class="admin-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="eyebrow">
+                        FEEDBACK
+                    </span>
+
+                    <h1>
+                        Reviews
+                    </h1>
+
+                    <p>
+                        Manage student and parent reviews.
+                    </p>
 
                 </div>
 
+            </div>
 
 
-                <!-- EVENTS -->
+            <div class="admin-form-card">
 
-                <div
-                    id="galleryAdminList"
-                    class="gallery-admin-list"
-                ></div>
+                <h2>
+                    Add Review
+                </h2>
+
+                <form
+                    id="reviewForm"
+                    onsubmit="addReview(event)"
+                >
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label>
+                                Name
+                            </label>
+
+                            <input
+                                type="text"
+                                name="name"
+                                required
+                            >
+
+                        </div>
 
 
-            </section>
+                        <div class="form-group full-width">
+
+                            <label>
+                                Review
+                            </label>
+
+                            <textarea
+                                name="review"
+                                rows="4"
+                                required
+                            ></textarea>
+
+                        </div>
+
+                    </div>
 
 
-        </main>
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                    >
+                        + Add Review
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <div
+                id="reviewList"
+                class="admin-list"
+            ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             GALLERY
+        ================================================= -->
+
+        <section
+            id="gallery"
+            class="admin-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="eyebrow">
+                        PHOTOS
+                    </span>
+
+                    <h1>
+                        Gallery
+                    </h1>
+
+                    <p>
+                        Create events and manage gallery photos.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div class="admin-form-card">
+
+                <h2>
+                    Create Gallery Event
+                </h2>
+
+                <form
+                    id="galleryEventForm"
+                    onsubmit="createGalleryEvent(event)"
+                    enctype="multipart/form-data"
+                >
+
+                    <div class="form-grid">
+
+                        <div class="form-group">
+
+                            <label>
+                                Event Title
+                            </label>
+
+                            <input
+                                type="text"
+                                name="title"
+                                placeholder="Annual Function 2026"
+                                required
+                            >
+
+                        </div>
+
+
+                        <div class="form-group">
+
+                            <label>
+                                Event Date
+                            </label>
+
+                            <input
+                                type="date"
+                                name="event_date"
+                            >
+
+                        </div>
+
+
+                        <div class="form-group full-width">
+
+                            <label>
+                                Description
+                            </label>
+
+                            <textarea
+                                name="description"
+                                rows="3"
+                            ></textarea>
+
+                        </div>
+
+
+                        <div class="form-group full-width">
+
+                            <label>
+                                Cover Photo
+                            </label>
+
+                            <input
+                                type="file"
+                                name="cover_photo"
+                                accept=".jpg,.jpeg,.png,.webp"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="primary-btn"
+                    >
+                        + Create Event
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <div
+                id="galleryAdminList"
+                class="gallery-admin-list"
+            ></div>
+
+        </section>
+
+    </main>
+
+</div>
+
+
+<!-- =====================================================
+     EDIT MODAL
+===================================================== -->
+
+<div
+    id="editModal"
+    class="modal-overlay"
+    onclick="closeEditModalOnOverlay(event)"
+>
+
+    <div
+        class="edit-modal"
+        onclick="event.stopPropagation()"
+    >
+
+        <div class="modal-header">
+
+            <div>
+
+                <span class="eyebrow">
+                    EDIT
+                </span>
+
+                <h2 id="editModalTitle">
+                    Edit
+                </h2>
+
+            </div>
+
+            <button
+                type="button"
+                class="modal-close"
+                onclick="closeEditModal()"
+            >
+                ×
+            </button>
+
+        </div>
+
+
+        <form
+            id="editForm"
+            onsubmit="submitEdit(event)"
+            enctype="multipart/form-data"
+        >
+
+            <input
+                type="hidden"
+                id="editType"
+            >
+
+            <input
+                type="hidden"
+                id="editId"
+            >
+
+
+            <div
+                id="editFields"
+                class="form-grid"
+            ></div>
+
+
+            <div class="modal-actions">
+
+                <button
+                    type="button"
+                    class="secondary-btn"
+                    onclick="closeEditModal()"
+                >
+                    Cancel
+                </button>
+
+                <button
+                    type="submit"
+                    class="primary-btn"
+                >
+                    Save Changes
+                </button>
+
+            </div>
+
+        </form>
 
     </div>
 
+</div>
 
 
-    <!-- JAVASCRIPT -->
+<div
+    id="toast"
+    class="toast"
+></div>
 
-    <script src="/assets/admin.js"></script>
+
+<script src="/assets/admin.js?v=3"></script>
 
 </body>
 

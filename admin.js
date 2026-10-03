@@ -1,511 +1,490 @@
-const API_URL = "https://vishnu-pcm-admin.onrender.com";
+/* =========================================================
+   CONFIG
+========================================================= */
+
+const API_URL =
+    "https://vishnu-pcm-admin.onrender.com";
 
 
-let currentData = {
-    faculty: [],
-    toppers: [],
-    alumni: [],
-    testimonials: []
-};
+/* =========================================================
+   ELEMENTS
+========================================================= */
+
+const loginPage =
+    document.getElementById("loginPage");
+
+const adminApp =
+    document.getElementById("adminApp");
+
+const editModal =
+    document.getElementById("editModal");
+
+const editForm =
+    document.getElementById("editForm");
+
+const editFields =
+    document.getElementById("editFields");
 
 
-let galleryData = [];
-
-
-
-/* =====================================================
+/* =========================================================
    TOKEN
-===================================================== */
+========================================================= */
 
 function getToken() {
 
-    return localStorage.getItem("adminToken");
+    return localStorage.getItem(
+        "adminToken"
+    );
+}
 
+
+function saveToken(token) {
+
+    localStorage.setItem(
+        "adminToken",
+        token
+    );
 }
 
 
 function clearToken() {
 
-    localStorage.removeItem("adminToken");
-
+    localStorage.removeItem(
+        "adminToken"
+    );
 }
 
 
-
-/* =====================================================
-   API FETCH
-===================================================== */
-
-async function apiFetch(url, options = {}) {
-
-    const token = getToken();
-
-    const headers = new Headers(
-        options.headers || {}
-    );
-
-
-    if (token) {
-
-        headers.set(
-            "Authorization",
-            `Bearer ${token}`
-        );
-
-    }
-
-
-    const response = await fetch(
-        `${API_URL}${url}`,
-        {
-            ...options,
-            headers
-        }
-    );
-
-
-    if (response.status === 401) {
-
-        clearToken();
-
-        logout();
-
-        throw new Error(
-            "Session expired. Please login again."
-        );
-
-    }
-
-
-    return response;
-
-}
-
-
-
-/* =====================================================
+/* =========================================================
    IMAGE URL
-===================================================== */
+========================================================= */
 
-function getImageURL(value) {
+function getImageValue(value) {
 
     if (!value) {
         return "";
     }
 
+    if (typeof value === "string") {
+        return value.trim();
+    }
 
-    let url = String(value).trim();
+    if (
+        typeof value === "object"
+        && value !== null
+    ) {
+
+        return (
+            value.url
+            || value.secure_url
+            || value.photo_url
+            || value.photo
+            || value.image_url
+            || ""
+        );
+    }
+
+    return "";
+}
 
 
-    if (!url) {
+function normalizeImageUrl(url) {
+
+    const value = getImageValue(url);
+
+    if (!value) {
         return "";
     }
 
-
-    /*
-       Cloudinary URL
-    */
-
     if (
-        url.startsWith("http://") ||
-        url.startsWith("https://")
+        value.startsWith("http://")
+        || value.startsWith("https://")
     ) {
 
-        return url;
-
+        return value;
     }
 
+    if (value.startsWith("//")) {
 
-    /*
-       Local uploaded image URL
-    */
-
-    if (url.startsWith("/")) {
-
-        return `${API_URL}${url}`;
-
+        return "https:" + value;
     }
 
+    if (value.startsWith("/")) {
 
-    return url;
+        return API_URL + value;
+    }
 
+    return value;
 }
 
 
+/* =========================================================
+   HTML ESCAPING
+========================================================= */
 
-/* =====================================================
+function escapeHTML(value) {
+
+    if (
+        value === null
+        || value === undefined
+    ) {
+
+        return "";
+    }
+
+    return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+
+function escapeAttribute(value) {
+
+    return escapeHTML(value);
+}
+
+
+/* =========================================================
    IMAGE HTML
-===================================================== */
+========================================================= */
 
-function createImageHTML(
-    photo,
-    fallbackLetter = "V"
+function imageHTML(
+    url,
+    alt = "",
+    fallbackText = "V"
 ) {
 
-    const url =
-        getImageURL(photo);
+    const imageUrl =
+        normalizeImageUrl(url);
 
-
-    if (!url) {
+    if (!imageUrl) {
 
         return `
-            <div class="admin-placeholder">
-                ${escapeHTML(fallbackLetter)}
+            <div class="admin-item-image">
+                <div class="image-fallback">
+                    ${escapeHTML(fallbackText)}
+                </div>
             </div>
         `;
-
     }
 
-
     return `
-        <img
-            src="${escapeAttribute(url)}"
-            alt=""
-            loading="lazy"
-            onerror="this.onerror=null; this.parentElement.innerHTML='<div class=&quot;admin-placeholder&quot;>${escapeHTML(fallbackLetter)}</div>';"
-        >
-    `;
+        <div class="admin-item-image">
 
+            <img
+                src="${escapeAttribute(imageUrl)}"
+                alt="${escapeAttribute(alt)}"
+                loading="lazy"
+                onerror="
+                    this.style.display='none';
+                    this.parentElement
+                    .querySelector('.image-fallback')
+                    .style.display='grid';
+                "
+            >
+
+            <div
+                class="image-fallback"
+                style="display:none;"
+            >
+                ${escapeHTML(fallbackText)}
+            </div>
+
+        </div>
+    `;
 }
 
 
+/* =========================================================
+   TOAST
+========================================================= */
 
-/* =====================================================
+let toastTimer;
+
+
+function showToast(message) {
+
+    const toast =
+        document.getElementById("toast");
+
+    toast.textContent = message;
+
+    toast.classList.add("show");
+
+    clearTimeout(toastTimer);
+
+    toastTimer = setTimeout(() => {
+
+        toast.classList.remove("show");
+
+    }, 3000);
+}
+
+
+/* =========================================================
+   API FETCH
+========================================================= */
+
+async function apiFetch(
+    endpoint,
+    options = {}
+) {
+
+    const token =
+        getToken();
+
+    const headers =
+        options.headers || {};
+
+    if (token) {
+
+        headers["Authorization"] =
+            `Bearer ${token}`;
+    }
+
+    options.headers = headers;
+
+    const response =
+        await fetch(
+            API_URL + endpoint,
+            options
+        );
+
+    if (response.status === 401) {
+
+        clearToken();
+
+        showLogin();
+
+        throw new Error(
+            "Session expired. Please login again."
+        );
+    }
+
+    let data = {};
+
+    try {
+
+        data = await response.json();
+
+    } catch {
+
+        data = {};
+    }
+
+    if (!response.ok) {
+
+        throw new Error(
+            data.detail
+            || "Something went wrong"
+        );
+    }
+
+    return data;
+}
+
+
+/* =========================================================
    LOGIN
-===================================================== */
+========================================================= */
 
 async function login(event) {
 
     event.preventDefault();
 
-
-    const emailElement =
-        document.getElementById("email");
-
-
-    const passwordElement =
-        document.getElementById("password");
-
-
-    const errorBox =
-        document.getElementById("loginError");
-
-
-    if (!emailElement || !passwordElement) {
-
-        alert(
-            "Login form is not available."
-        );
-
-        return;
-
-    }
-
-
     const email =
-        emailElement.value.trim();
-
+        document.getElementById(
+            "email"
+        ).value.trim();
 
     const password =
-        passwordElement.value;
+        document.getElementById(
+            "password"
+        ).value;
 
+    const errorElement =
+        document.getElementById(
+            "loginError"
+        );
 
-    if (errorBox) {
+    errorElement.textContent = "";
 
-        errorBox.textContent = "";
+    const formData =
+        new FormData();
 
-        errorBox.style.display = "none";
+    formData.append(
+        "email",
+        email
+    );
 
-    }
-
+    formData.append(
+        "password",
+        password
+    );
 
     try {
 
-        const formData =
-            new FormData();
-
-
-        formData.append(
-            "email",
-            email
-        );
-
-
-        formData.append(
-            "password",
-            password
-        );
-
-
-        const response =
+        const data =
             await fetch(
-                `${API_URL}/api/login`,
+                API_URL + "/api/login",
                 {
                     method: "POST",
                     body: formData
                 }
             );
 
+        const result =
+            await data.json();
 
-        let data = {};
-
-
-        try {
-
-            data =
-                await response.json();
-
-        } catch {
-
-            data = {};
-
-        }
-
-
-        if (!response.ok) {
+        if (!data.ok) {
 
             throw new Error(
-                data.detail ||
-                "Invalid email or password."
+                result.detail
+                || "Login failed"
             );
-
         }
 
-
-        if (!data.token) {
-
-            throw new Error(
-                "Login successful but token was not received."
-            );
-
-        }
-
-
-        localStorage.setItem(
-            "adminToken",
-            data.token
+        saveToken(
+            result.token
         );
 
+        showAdmin();
 
-        const loginPage =
-            document.getElementById(
-                "loginPage"
-            );
+        await refreshAll();
 
-
-        const adminApp =
-            document.getElementById(
-                "adminApp"
-            );
-
-
-        if (loginPage) {
-
-            loginPage.style.display =
-                "none";
-
-        }
-
-
-        if (adminApp) {
-
-            adminApp.style.display =
-                "flex";
-
-        }
-
-
-        await loadAdminData();
-
-        await loadAdminGallery();
-
+        showToast(
+            "Login successful"
+        );
 
     } catch (error) {
 
-        console.error(
-            "Login error:",
-            error
-        );
-
-
-        if (errorBox) {
-
-            errorBox.textContent =
-                error.message ||
-                "Login failed.";
-
-            errorBox.style.display =
-                "block";
-
-        } else {
-
-            alert(
-                error.message ||
-                "Login failed."
-            );
-
-        }
+        errorElement.textContent =
+            error.message;
 
     }
+}
+
+
+/* =========================================================
+   SHOW / HIDE
+========================================================= */
+
+function showAdmin() {
+
+    loginPage.style.display =
+        "none";
+
+    adminApp.style.display =
+        "";
 
 }
 
 
+function showLogin() {
 
-/* =====================================================
+    adminApp.style.display =
+        "none";
+
+    loginPage.style.display =
+        "grid";
+}
+
+
+/* =========================================================
    LOGOUT
-===================================================== */
+========================================================= */
 
-function logout() {
+async function logout() {
+
+    try {
+
+        await apiFetch(
+            "/api/logout",
+            {
+                method: "POST"
+            }
+        );
+
+    } catch {
+
+    }
 
     clearToken();
 
+    showLogin();
 
-    const loginPage =
-        document.getElementById(
-            "loginPage"
-        );
-
-
-    const adminApp =
-        document.getElementById(
-            "adminApp"
-        );
-
-
-    if (adminApp) {
-
-        adminApp.style.display =
-            "none";
-
-    }
-
-
-    if (loginPage) {
-
-        loginPage.style.display =
-            "flex";
-
-    }
-
-
-    const email =
-        document.getElementById(
-            "email"
-        );
-
-
-    const password =
-        document.getElementById(
-            "password"
-        );
-
-
-    const error =
-        document.getElementById(
-            "loginError"
-        );
-
-
-    if (email) {
-
-        email.value = "";
-
-    }
-
-
-    if (password) {
-
-        password.value = "";
-
-    }
-
-
-    if (error) {
-
-        error.textContent = "";
-
-        error.style.display = "none";
-
-    }
-
+    showToast(
+        "Logged out"
+    );
 }
 
 
+/* =========================================================
+   SECTION NAVIGATION
+========================================================= */
 
-/* =====================================================
-   SHOW TAB
-===================================================== */
+function showSection(
+    sectionId,
+    button
+) {
 
-function showTab(tabName) {
-
-    const sections =
-        document.querySelectorAll(
-            ".admin-section"
-        );
-
-
-    sections.forEach(
-        section => {
+    document
+        .querySelectorAll(".admin-section")
+        .forEach(section => {
 
             section.classList.remove(
-                "active"
+                "active-section"
             );
 
-        }
-    );
+        });
 
 
-    const selected =
+    const section =
         document.getElementById(
-            tabName
+            sectionId
         );
 
+    if (section) {
 
-    if (selected) {
-
-        selected.classList.add(
-            "active"
+        section.classList.add(
+            "active-section"
         );
-
     }
 
 
-    const pageTitle =
-        document.getElementById(
-            "pageTitle"
+    document
+        .querySelectorAll(".nav-btn")
+        .forEach(btn => {
+
+            btn.classList.remove(
+                "active"
+            );
+
+        });
+
+
+    if (button) {
+
+        button.classList.add(
+            "active"
         );
 
+    } else {
 
-    const titles = {
+        const navButton =
+            document.querySelector(
+                `.nav-btn[data-section="${sectionId}"]`
+            );
 
-        dashboard:
-            "Dashboard",
+        if (navButton) {
 
-        faculty:
-            "Faculty",
-
-        toppers:
-            "Toppers",
-
-        alumni:
-            "Alumni",
-
-        reviews:
-            "Reviews",
-
-        gallery:
-            "Gallery"
-
-    };
-
-
-    if (pageTitle) {
-
-        pageTitle.textContent =
-            titles[tabName] ||
-            "Dashboard";
-
+            navButton.classList.add(
+                "active"
+            );
+        }
     }
 
 
@@ -513,337 +492,1107 @@ function showTab(tabName) {
         top: 0,
         behavior: "smooth"
     });
-
 }
 
 
-
-/* =====================================================
+/* =========================================================
    LOAD ADMIN DATA
-===================================================== */
+========================================================= */
+
+let currentData = {
+
+    faculty: [],
+    toppers: [],
+    alumni: [],
+    testimonials: []
+
+};
+
 
 async function loadAdminData() {
 
-    try {
-
-        const response =
-            await apiFetch(
-                "/api/admin/data"
-            );
-
-
-        if (!response.ok) {
-
-            const data =
-                await response.json()
-                    .catch(() => ({}));
-
-
-            throw new Error(
-                data.detail ||
-                "Unable to load admin data."
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        currentData = {
-
-            faculty:
-                Array.isArray(data.faculty)
-                    ? data.faculty
-                    : [],
-
-            toppers:
-                Array.isArray(data.toppers)
-                    ? data.toppers
-                    : [],
-
-            alumni:
-                Array.isArray(data.alumni)
-                    ? data.alumni
-                    : [],
-
-            testimonials:
-                Array.isArray(data.testimonials)
-                    ? data.testimonials
-                    : []
-
-        };
-
-
-        renderAdminData();
-
-
-    } catch (error) {
-
-        console.error(
-            "Admin data error:",
-            error
+    const data =
+        await apiFetch(
+            "/api/admin/data"
         );
 
-    }
+    currentData = {
 
+        faculty:
+            Array.isArray(data.faculty)
+                ? data.faculty
+                : [],
+
+        toppers:
+            Array.isArray(data.toppers)
+                ? data.toppers
+                : [],
+
+        alumni:
+            Array.isArray(data.alumni)
+                ? data.alumni
+                : [],
+
+        testimonials:
+            Array.isArray(data.testimonials)
+                ? data.testimonials
+                : []
+
+    };
+
+    renderAdminData();
 }
 
 
-
-/* =====================================================
-   RENDER ADMIN DATA
-===================================================== */
+/* =========================================================
+   RENDER ALL DATA
+========================================================= */
 
 function renderAdminData() {
 
-    renderFacultyList();
+    renderFaculty();
 
-    renderTopperList();
+    renderToppers();
 
-    renderAlumniList();
+    renderAlumni();
 
-    renderReviewList();
+    renderReviews();
 
-    updateDashboardCounts();
 
+    document.getElementById(
+        "facultyCount"
+    ).textContent =
+        currentData.faculty.length;
+
+
+    document.getElementById(
+        "topCount"
+    ).textContent =
+        currentData.toppers.length;
+
+
+    document.getElementById(
+        "alumniCount"
+    ).textContent =
+        currentData.alumni.length;
+
+
+    document.getElementById(
+        "reviewCount"
+    ).textContent =
+        currentData.testimonials.length;
 }
 
 
+/* =========================================================
+   FACULTY
+========================================================= */
 
-/* =====================================================
-   DASHBOARD COUNTS
-===================================================== */
-
-function updateDashboardCounts() {
-
-    setText(
-        "facultyCount",
-        currentData.faculty.length
-    );
-
-
-    setText(
-        "topCount",
-        currentData.toppers.length
-    );
-
-
-    setText(
-        "alumniCount",
-        currentData.alumni.length
-    );
-
-
-    setText(
-        "reviewCount",
-        currentData.testimonials.length
-    );
-
-
-    setText(
-        "galleryCount",
-        galleryData.length
-    );
-
-}
-
-
-function setText(id, value) {
-
-    const element =
-        document.getElementById(id);
-
-
-    if (element) {
-
-        element.textContent =
-            value;
-
-    }
-
-}
-
-
-
-/* =====================================================
-   ADD FACULTY
-===================================================== */
-
-async function addFaculty(event) {
-
-    event.preventDefault();
-
-
-    const form =
-        event.target;
-
-
-    const formData =
-        new FormData(form);
-
-
-    try {
-
-        const response =
-            await apiFetch(
-                "/api/admin/faculty",
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to add faculty."
-            );
-
-        }
-
-
-        alert(
-            "Faculty added successfully."
-        );
-
-
-        form.reset();
-
-
-        await loadAdminData();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            error.message
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   FACULTY LIST
-===================================================== */
-
-function renderFacultyList() {
+function renderFaculty() {
 
     const container =
         document.getElementById(
             "facultyList"
         );
 
-
-    if (!container) {
-        return;
-    }
-
-
     if (!currentData.faculty.length) {
 
         container.innerHTML =
-            `
-            <div class="empty-state">
-                No faculty added yet.
-            </div>
-            `;
+            emptyState(
+                "No faculty added",
+                "Add your first faculty member above."
+            );
 
         return;
-
     }
 
 
     container.innerHTML =
         currentData.faculty
-            .map(
-                faculty => {
+            .map(faculty => {
 
-                    const photo =
-                        faculty.photo ||
-                        faculty.image ||
-                        faculty.photo_url ||
-                        "";
+                const photo =
+                    getImageValue(
+                        faculty.photo
+                    );
 
+                const initial =
+                    faculty.name
+                        ? faculty.name
+                            .charAt(0)
+                            .toUpperCase()
+                        : "F";
 
-                    return `
-                        <div class="admin-item">
+                return `
+                    <div class="admin-item">
 
-                            <div class="admin-item-info">
+                        ${imageHTML(
+                            photo,
+                            faculty.name,
+                            initial
+                        )}
 
-                                <div class="admin-item-image">
+                        <div class="admin-item-content">
 
-                                    ${createImageHTML(
-                                        photo,
-                                        "F"
-                                    )}
+                            <h3>
+                                ${escapeHTML(
+                                    faculty.name
+                                )}
+                            </h3>
 
-                                </div>
-
-                                <div class="admin-item-content">
-
-                                    <h3>
-                                        ${escapeHTML(
-                                            faculty.name
-                                        )}
-                                    </h3>
-
-                                    <p>
-                                        <strong>
-                                            ${escapeHTML(
-                                                faculty.subject ||
-                                                ""
-                                            )}
-                                        </strong>
-                                    </p>
-
-                                    <small>
-                                        ${escapeHTML(
-                                            faculty.description ||
-                                            ""
-                                        )}
-                                    </small>
-
-                                </div>
-
+                            <div class="subject">
+                                ${escapeHTML(
+                                    faculty.subject
+                                )}
                             </div>
 
+                            <p>
+                                ${escapeHTML(
+                                    faculty.description
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div class="admin-item-actions">
+
+                            <button
+                                type="button"
+                                class="edit-btn"
+                                onclick="openFacultyEdit(${faculty.id})"
+                            >
+                                Edit
+                            </button>
 
                             <button
                                 type="button"
                                 class="delete-btn"
-                                onclick="deleteFaculty(${Number(faculty.id)})"
+                                onclick="deleteFaculty(${faculty.id})"
                             >
                                 Delete
                             </button>
 
                         </div>
-                    `;
 
-                }
-            )
+                    </div>
+                `;
+
+            })
             .join("");
-
 }
 
 
+/* =========================================================
+   ADD FACULTY
+========================================================= */
 
-/* =====================================================
-   DELETE FACULTY
-===================================================== */
+async function addFaculty(event) {
+
+    event.preventDefault();
+
+    const form =
+        event.target;
+
+    const formData =
+        new FormData(form);
+
+    try {
+
+        await apiFetch(
+            "/api/admin/faculty",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        form.reset();
+
+        await loadAdminData();
+
+        showToast(
+            "Faculty added successfully"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+/* =========================================================
+   EDIT FACULTY MODAL
+========================================================= */
+
+function openFacultyEdit(id) {
+
+    const faculty =
+        currentData.faculty.find(
+            item => Number(item.id) === Number(id)
+        );
+
+    if (!faculty) return;
+
+    document.getElementById(
+        "editType"
+    ).value = "faculty";
+
+    document.getElementById(
+        "editId"
+    ).value = faculty.id;
+
+    document.getElementById(
+        "editModalTitle"
+    ).textContent =
+        "Edit Faculty";
+
+
+    editFields.innerHTML = `
+
+        <div class="form-group">
+
+            <label>Name</label>
+
+            <input
+                type="text"
+                id="editName"
+                name="name"
+                value="${escapeAttribute(
+                    faculty.name
+                )}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Subject</label>
+
+            <input
+                type="text"
+                id="editSubject"
+                name="subject"
+                value="${escapeAttribute(
+                    faculty.subject
+                )}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>Description</label>
+
+            <textarea
+                id="editDescription"
+                name="description"
+                rows="5"
+            >${escapeHTML(
+                faculty.description || ""
+            )}</textarea>
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>Current Photo</label>
+
+            ${
+                normalizeImageUrl(
+                    faculty.photo
+                )
+                ? `
+                    <div class="current-edit-image">
+
+                        <img
+                            src="${escapeAttribute(
+                                normalizeImageUrl(
+                                    faculty.photo
+                                )
+                            )}"
+                            alt=""
+                        >
+
+                    </div>
+                `
+                : `
+                    <div class="no-photo-text">
+                        No photo uploaded.
+                    </div>
+                `
+            }
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>
+                Replace Photo
+            </label>
+
+            <input
+                type="file"
+                id="editPhoto"
+                name="photo"
+                accept=".jpg,.jpeg,.png,.webp"
+            >
+
+            <small>
+                Leave empty to keep the current photo.
+            </small>
+
+        </div>
+
+    `;
+
+    openEditModal();
+}
+
+
+/* =========================================================
+   TOPPERS
+========================================================= */
+
+function renderToppers() {
+
+    const container =
+        document.getElementById(
+            "topperList"
+        );
+
+    if (!currentData.toppers.length) {
+
+        container.innerHTML =
+            emptyState(
+                "No toppers added",
+                "Add topper profiles above."
+            );
+
+        return;
+    }
+
+
+    container.innerHTML =
+        currentData.toppers
+            .map(person => {
+
+                const initial =
+                    person.name
+                        ? person.name
+                            .charAt(0)
+                            .toUpperCase()
+                        : "T";
+
+                return `
+                    <div class="admin-item">
+
+                        ${imageHTML(
+                            person.photo,
+                            person.name,
+                            initial
+                        )}
+
+                        <div class="admin-item-content">
+
+                            <h3>
+                                ${escapeHTML(
+                                    person.name
+                                )}
+                            </h3>
+
+                            <small>
+                                ${escapeHTML(
+                                    person.details
+                                )}
+                            </small>
+
+                            <p>
+                                ${escapeHTML(
+                                    person.review
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div class="admin-item-actions">
+
+                            <button
+                                type="button"
+                                class="edit-btn"
+                                onclick="openPersonEdit('topper', ${person.id})"
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                type="button"
+                                class="delete-btn"
+                                onclick="deleteTopper(${person.id})"
+                            >
+                                Delete
+                            </button>
+
+                        </div>
+
+                    </div>
+                `;
+
+            })
+            .join("");
+}
+
+
+/* =========================================================
+   ADD TOPPER
+========================================================= */
+
+async function addTopper(event) {
+
+    event.preventDefault();
+
+    const form =
+        event.target;
+
+    const formData =
+        new FormData(form);
+
+    try {
+
+        await apiFetch(
+            "/api/admin/people",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        form.reset();
+
+        await loadAdminData();
+
+        showToast(
+            "Topper added successfully"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+/* =========================================================
+   EDIT TOPPER / ALUMNI
+========================================================= */
+
+function openPersonEdit(
+    type,
+    id
+) {
+
+    const list =
+        type === "topper"
+            ? currentData.toppers
+            : currentData.alumni;
+
+    const person =
+        list.find(
+            item => Number(item.id) === Number(id)
+        );
+
+    if (!person) return;
+
+
+    document.getElementById(
+        "editType"
+    ).value = type;
+
+    document.getElementById(
+        "editId"
+    ).value = person.id;
+
+    document.getElementById(
+        "editModalTitle"
+    ).textContent =
+        type === "topper"
+            ? "Edit Topper"
+            : "Edit Alumni";
+
+
+    editFields.innerHTML = `
+
+        <div class="form-group">
+
+            <label>Name</label>
+
+            <input
+                type="text"
+                name="name"
+                value="${escapeAttribute(
+                    person.name
+                )}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>Details</label>
+
+            <input
+                type="text"
+                name="details"
+                value="${escapeAttribute(
+                    person.details || ""
+                )}"
+            >
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>Review / Message</label>
+
+            <textarea
+                name="review"
+                rows="5"
+            >${escapeHTML(
+                person.review || ""
+            )}</textarea>
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>Current Photo</label>
+
+            ${
+                normalizeImageUrl(
+                    person.photo
+                )
+                ? `
+                    <div class="current-edit-image">
+
+                        <img
+                            src="${escapeAttribute(
+                                normalizeImageUrl(
+                                    person.photo
+                                )
+                            )}"
+                            alt=""
+                        >
+
+                    </div>
+                `
+                : `
+                    <div class="no-photo-text">
+                        No photo uploaded.
+                    </div>
+                `
+            }
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>
+                Replace Photo
+            </label>
+
+            <input
+                type="file"
+                name="photo"
+                accept=".jpg,.jpeg,.png,.webp"
+            >
+
+            <small>
+                Leave empty to keep the current photo.
+            </small>
+
+        </div>
+
+    `;
+
+    openEditModal();
+}
+
+
+/* =========================================================
+   ALUMNI
+========================================================= */
+
+function renderAlumni() {
+
+    const container =
+        document.getElementById(
+            "alumniList"
+        );
+
+    if (!currentData.alumni.length) {
+
+        container.innerHTML =
+            emptyState(
+                "No alumni added",
+                "Add alumni profiles above."
+            );
+
+        return;
+    }
+
+
+    container.innerHTML =
+        currentData.alumni
+            .map(person => {
+
+                const initial =
+                    person.name
+                        ? person.name
+                            .charAt(0)
+                            .toUpperCase()
+                        : "A";
+
+                return `
+                    <div class="admin-item">
+
+                        ${imageHTML(
+                            person.photo,
+                            person.name,
+                            initial
+                        )}
+
+                        <div class="admin-item-content">
+
+                            <h3>
+                                ${escapeHTML(
+                                    person.name
+                                )}
+                            </h3>
+
+                            <small>
+                                ${escapeHTML(
+                                    person.details
+                                )}
+                            </small>
+
+                            <p>
+                                ${escapeHTML(
+                                    person.review
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div class="admin-item-actions">
+
+                            <button
+                                type="button"
+                                class="edit-btn"
+                                onclick="openPersonEdit('alumni', ${person.id})"
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                type="button"
+                                class="delete-btn"
+                                onclick="deleteAlumni(${person.id})"
+                            >
+                                Delete
+                            </button>
+
+                        </div>
+
+                    </div>
+                `;
+
+            })
+            .join("");
+}
+
+
+/* =========================================================
+   ADD ALUMNI
+========================================================= */
+
+async function addAlumni(event) {
+
+    event.preventDefault();
+
+    const form =
+        event.target;
+
+    const formData =
+        new FormData(form);
+
+    try {
+
+        await apiFetch(
+            "/api/admin/people",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        form.reset();
+
+        await loadAdminData();
+
+        showToast(
+            "Alumni added successfully"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+/* =========================================================
+   REVIEWS
+========================================================= */
+
+function renderReviews() {
+
+    const container =
+        document.getElementById(
+            "reviewList"
+        );
+
+    if (!currentData.testimonials.length) {
+
+        container.innerHTML =
+            emptyState(
+                "No reviews added",
+                "Add your first review above."
+            );
+
+        return;
+    }
+
+
+    container.innerHTML =
+        currentData.testimonials
+            .map(review => {
+
+                const initial =
+                    review.name
+                        ? review.name
+                            .charAt(0)
+                            .toUpperCase()
+                        : "R";
+
+                return `
+                    <div class="admin-item">
+
+                        <div class="admin-item-image">
+
+                            <div class="image-fallback">
+                                ${escapeHTML(
+                                    initial
+                                )}
+                            </div>
+
+                        </div>
+
+                        <div class="admin-item-content">
+
+                            <h3>
+                                ${escapeHTML(
+                                    review.name
+                                )}
+                            </h3>
+
+                            <p>
+                                ${escapeHTML(
+                                    review.review
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div class="admin-item-actions">
+
+                            <button
+                                type="button"
+                                class="edit-btn"
+                                onclick="openReviewEdit(${review.id})"
+                            >
+                                Edit
+                            </button>
+
+                            <button
+                                type="button"
+                                class="delete-btn"
+                                onclick="deleteReview(${review.id})"
+                            >
+                                Delete
+                            </button>
+
+                        </div>
+
+                    </div>
+                `;
+
+            })
+            .join("");
+}
+
+
+/* =========================================================
+   ADD REVIEW
+========================================================= */
+
+async function addReview(event) {
+
+    event.preventDefault();
+
+    const form =
+        event.target;
+
+    const formData =
+        new FormData(form);
+
+    try {
+
+        await apiFetch(
+            "/api/admin/testimonials",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        form.reset();
+
+        await loadAdminData();
+
+        showToast(
+            "Review added successfully"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+/* =========================================================
+   EDIT REVIEW
+========================================================= */
+
+function openReviewEdit(id) {
+
+    const review =
+        currentData.testimonials.find(
+            item => Number(item.id) === Number(id)
+        );
+
+    if (!review) return;
+
+
+    document.getElementById(
+        "editType"
+    ).value = "review";
+
+    document.getElementById(
+        "editId"
+    ).value = review.id;
+
+    document.getElementById(
+        "editModalTitle"
+    ).textContent =
+        "Edit Review";
+
+
+    editFields.innerHTML = `
+
+        <div class="form-group full-width">
+
+            <label>Name</label>
+
+            <input
+                type="text"
+                name="name"
+                value="${escapeAttribute(
+                    review.name
+                )}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>Review</label>
+
+            <textarea
+                name="review"
+                rows="6"
+                required
+            >${escapeHTML(
+                review.review || ""
+            )}</textarea>
+
+        </div>
+
+    `;
+
+    openEditModal();
+}
+
+
+/* =========================================================
+   SUBMIT EDIT
+========================================================= */
+
+async function submitEdit(event) {
+
+    event.preventDefault();
+
+    const type =
+        document.getElementById(
+            "editType"
+        ).value;
+
+    const id =
+        document.getElementById(
+            "editId"
+        ).value;
+
+
+    const formData =
+        new FormData(
+            editForm
+        );
+
+
+    let endpoint = "";
+
+
+    if (type === "faculty") {
+
+        endpoint =
+            `/api/admin/faculty/${id}`;
+
+    } else if (
+        type === "topper"
+        || type === "alumni"
+    ) {
+
+        formData.append(
+            "type",
+            type
+        );
+
+        endpoint =
+            `/api/admin/people/${id}`;
+
+    } else if (type === "review") {
+
+        endpoint =
+            `/api/admin/testimonials/${id}`;
+
+    } else if (type === "gallery") {
+
+        endpoint =
+            `/api/admin/gallery/event/${id}`;
+    }
+
+
+    try {
+
+        await apiFetch(
+            endpoint,
+            {
+                method: "PUT",
+                body: formData
+            }
+        );
+
+        closeEditModal();
+
+        await refreshAll();
+
+        showToast(
+            "Changes saved successfully"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function openEditModal() {
+
+    editModal.classList.add(
+        "show"
+    );
+
+    document.body.style.overflow =
+        "hidden";
+}
+
+
+function closeEditModal() {
+
+    editModal.classList.remove(
+        "show"
+    );
+
+    document.body.style.overflow =
+        "";
+
+    editForm.reset();
+
+    editFields.innerHTML =
+        "";
+}
+
+
+function closeEditModalOnOverlay(
+    event
+) {
+
+    if (
+        event.target === editModal
+    ) {
+
+        closeEditModal();
+
+    }
+}
+
+
+/* =========================================================
+   DELETE FUNCTIONS
+========================================================= */
 
 async function deleteFaculty(id) {
 
@@ -854,239 +1603,30 @@ async function deleteFaculty(id) {
     ) {
 
         return;
-
     }
-
 
     try {
 
-        const response =
-            await apiFetch(
-                `/api/admin/faculty/${id}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to delete faculty."
-            );
-
-        }
-
+        await apiFetch(
+            `/api/admin/faculty/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
 
         await loadAdminData();
 
+        showToast(
+            "Faculty deleted"
+        );
 
     } catch (error) {
 
-        console.error(error);
-
-        alert(
-            error.message
-        );
+        alert(error.message);
 
     }
-
 }
 
-
-
-/* =====================================================
-   ADD TOPPER / ALUMNI
-===================================================== */
-
-async function addPerson(
-    event,
-    type
-) {
-
-    event.preventDefault();
-
-
-    const form =
-        event.target;
-
-
-    const formData =
-        new FormData(form);
-
-
-    formData.append(
-        "type",
-        type
-    );
-
-
-    try {
-
-        const response =
-            await apiFetch(
-                "/api/admin/people",
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                `Unable to add ${type}.`
-            );
-
-        }
-
-
-        alert(
-            type === "topper"
-                ? "Topper added successfully."
-                : "Alumni added successfully."
-        );
-
-
-        form.reset();
-
-
-        await loadAdminData();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            error.message
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   TOPPER LIST
-===================================================== */
-
-function renderTopperList() {
-
-    const container =
-        document.getElementById(
-            "topperList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    if (!currentData.toppers.length) {
-
-        container.innerHTML =
-            `
-            <div class="empty-state">
-                No toppers added yet.
-            </div>
-            `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        currentData.toppers
-            .map(
-                topper => {
-
-                    const photo =
-                        topper.photo ||
-                        topper.image ||
-                        topper.photo_url ||
-                        "";
-
-
-                    return `
-                        <div class="admin-item">
-
-                            <div class="admin-item-info">
-
-                                <div class="admin-item-image">
-
-                                    ${createImageHTML(
-                                        photo,
-                                        "T"
-                                    )}
-
-                                </div>
-
-                                <div class="admin-item-content">
-
-                                    <h3>
-                                        ${escapeHTML(
-                                            topper.name
-                                        )}
-                                    </h3>
-
-                                    <p>
-                                        ${escapeHTML(
-                                            topper.details ||
-                                            ""
-                                        )}
-                                    </p>
-
-                                    <small>
-                                        ${escapeHTML(
-                                            topper.review ||
-                                            ""
-                                        )}
-                                    </small>
-
-                                </div>
-
-                            </div>
-
-
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                onclick="deleteTopper(${Number(topper.id)})"
-                            >
-                                Delete
-                            </button>
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-
-/* =====================================================
-   DELETE TOPPER
-===================================================== */
 
 async function deleteTopper(id) {
 
@@ -1097,159 +1637,30 @@ async function deleteTopper(id) {
     ) {
 
         return;
-
     }
-
 
     try {
 
-        const response =
-            await apiFetch(
-                `/api/admin/topper/${id}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to delete topper."
-            );
-
-        }
-
+        await apiFetch(
+            `/api/admin/topper/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
 
         await loadAdminData();
 
+        showToast(
+            "Topper deleted"
+        );
 
     } catch (error) {
 
-        console.error(error);
-
-        alert(
-            error.message
-        );
+        alert(error.message);
 
     }
-
 }
 
-
-
-/* =====================================================
-   ALUMNI LIST
-===================================================== */
-
-function renderAlumniList() {
-
-    const container =
-        document.getElementById(
-            "alumniList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    if (!currentData.alumni.length) {
-
-        container.innerHTML =
-            `
-            <div class="empty-state">
-                No alumni added yet.
-            </div>
-            `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        currentData.alumni
-            .map(
-                alumni => {
-
-                    const photo =
-                        alumni.photo ||
-                        alumni.image ||
-                        alumni.photo_url ||
-                        "";
-
-
-                    return `
-                        <div class="admin-item">
-
-                            <div class="admin-item-info">
-
-                                <div class="admin-item-image">
-
-                                    ${createImageHTML(
-                                        photo,
-                                        "A"
-                                    )}
-
-                                </div>
-
-                                <div class="admin-item-content">
-
-                                    <h3>
-                                        ${escapeHTML(
-                                            alumni.name
-                                        )}
-                                    </h3>
-
-                                    <p>
-                                        ${escapeHTML(
-                                            alumni.details ||
-                                            ""
-                                        )}
-                                    </p>
-
-                                    <small>
-                                        ${escapeHTML(
-                                            alumni.review ||
-                                            ""
-                                        )}
-                                    </small>
-
-                                </div>
-
-                            </div>
-
-
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                onclick="deleteAlumni(${Number(alumni.id)})"
-                            >
-                                Delete
-                            </button>
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-
-/* =====================================================
-   DELETE ALUMNI
-===================================================== */
 
 async function deleteAlumni(id) {
 
@@ -1260,216 +1671,30 @@ async function deleteAlumni(id) {
     ) {
 
         return;
-
     }
-
 
     try {
 
-        const response =
-            await apiFetch(
-                `/api/admin/alumni/${id}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to delete alumni."
-            );
-
-        }
-
+        await apiFetch(
+            `/api/admin/alumni/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
 
         await loadAdminData();
 
+        showToast(
+            "Alumni deleted"
+        );
 
     } catch (error) {
 
-        console.error(error);
-
-        alert(
-            error.message
-        );
+        alert(error.message);
 
     }
-
 }
 
-
-
-/* =====================================================
-   ADD REVIEW
-===================================================== */
-
-async function addReview(event) {
-
-    event.preventDefault();
-
-
-    const form =
-        event.target;
-
-
-    const name =
-        form.elements.name.value.trim();
-
-
-    const review =
-        form.elements.review.value.trim();
-
-
-    try {
-
-        const response =
-            await apiFetch(
-                "/api/admin/testimonials",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type":
-                            "application/json"
-                    },
-                    body:
-                        JSON.stringify({
-                            name,
-                            review
-                        })
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to add review."
-            );
-
-        }
-
-
-        alert(
-            "Review added successfully."
-        );
-
-
-        form.reset();
-
-
-        await loadAdminData();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            error.message
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   REVIEW LIST
-===================================================== */
-
-function renderReviewList() {
-
-    const container =
-        document.getElementById(
-            "reviewList"
-        );
-
-
-    if (!container) {
-        return;
-    }
-
-
-    if (!currentData.testimonials.length) {
-
-        container.innerHTML =
-            `
-            <div class="empty-state">
-                No reviews added yet.
-            </div>
-            `;
-
-        return;
-
-    }
-
-
-    container.innerHTML =
-        currentData.testimonials
-            .map(
-                review => {
-
-                    return `
-                        <div class="admin-item">
-
-                            <div class="admin-item-info">
-
-                                <div class="admin-item-content">
-
-                                    <h3>
-                                        ${escapeHTML(
-                                            review.name
-                                        )}
-                                    </h3>
-
-                                    <p>
-                                        ${escapeHTML(
-                                            review.review
-                                        )}
-                                    </p>
-
-                                </div>
-
-                            </div>
-
-
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                onclick="deleteReview(${Number(review.id)})"
-                            >
-                                Delete
-                            </button>
-
-                        </div>
-                    `;
-
-                }
-            )
-            .join("");
-
-}
-
-
-
-/* =====================================================
-   DELETE REVIEW
-===================================================== */
 
 async function deleteReview(id) {
 
@@ -1480,228 +1705,82 @@ async function deleteReview(id) {
     ) {
 
         return;
-
     }
-
 
     try {
 
-        const response =
-            await apiFetch(
-                `/api/admin/review/${id}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to delete review."
-            );
-
-        }
-
+        await apiFetch(
+            `/api/admin/review/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
 
         await loadAdminData();
 
+        showToast(
+            "Review deleted"
+        );
 
     } catch (error) {
 
-        console.error(error);
-
-        alert(
-            error.message
-        );
+        alert(error.message);
 
     }
-
 }
 
 
+/* =========================================================
+   GALLERY
+========================================================= */
 
-/* =====================================================
-   GALLERY LOAD
-===================================================== */
+let galleryData = [];
+
 
 async function loadAdminGallery() {
 
-    try {
-
-        const response =
-            await apiFetch(
-                "/api/admin/gallery"
-            );
-
-
-        if (!response.ok) {
-
-            const data =
-                await response.json()
-                    .catch(() => ({}));
-
-
-            throw new Error(
-                data.detail ||
-                "Unable to load gallery."
-            );
-
-        }
-
-
-        const data =
-            await response.json();
-
-
-        if (Array.isArray(data)) {
-
-            galleryData =
-                data;
-
-        } else if (
-            Array.isArray(data.events)
-        ) {
-
-            galleryData =
-                data.events;
-
-        } else if (
-            Array.isArray(data.gallery)
-        ) {
-
-            galleryData =
-                data.gallery;
-
-        } else {
-
-            galleryData = [];
-
-        }
-
-
-        renderGallery();
-
-        updateDashboardCounts();
-
-
-    } catch (error) {
-
-        console.error(
-            "Gallery error:",
-            error
+    const data =
+        await apiFetch(
+            "/api/admin/gallery"
         );
+
+    if (Array.isArray(data)) {
+
+        galleryData = data;
+
+    } else if (
+        Array.isArray(data.gallery)
+    ) {
+
+        galleryData = data.gallery;
+
+    } else if (
+        Array.isArray(data.events)
+    ) {
+
+        galleryData = data.events;
+
+    } else {
+
+        galleryData = [];
 
     }
 
+    renderAdminGallery();
+
+
+    document.getElementById(
+        "galleryCount"
+    ).textContent =
+        galleryData.length;
 }
 
 
-
-/* =====================================================
-   CREATE GALLERY EVENT
-===================================================== */
-
-async function createGalleryEvent(event) {
-
-    event.preventDefault();
-
-
-    const form =
-        event.target;
-
-
-    const formData =
-        new FormData(form);
-
-
-    try {
-
-        const response =
-            await apiFetch(
-                "/api/admin/gallery/event",
-                {
-                    method: "POST",
-                    body: formData
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to create gallery event."
-            );
-
-        }
-
-
-        alert(
-            "Gallery event created successfully."
-        );
-
-
-        form.reset();
-
-
-        await loadAdminGallery();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            error.message
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   GALLERY IMAGE URL
-===================================================== */
-
-function getGalleryPhotoURL(photo) {
-
-    if (!photo) {
-        return "";
-    }
-
-
-    return getImageURL(
-        photo.url ||
-        photo.photo ||
-        photo.image_url ||
-        photo.photo_url ||
-        photo.secure_url ||
-        ""
-    );
-
-}
-
-
-
-/* =====================================================
+/* =========================================================
    RENDER GALLERY
-===================================================== */
+========================================================= */
 
-function renderGallery() {
+function renderAdminGallery() {
 
     const container =
         document.getElementById(
@@ -1709,273 +1788,434 @@ function renderGallery() {
         );
 
 
-    if (!container) {
-        return;
-    }
-
-
     if (!galleryData.length) {
 
         container.innerHTML =
-            `
-            <div class="empty-state">
-                No gallery events created yet.
-            </div>
-            `;
+            emptyState(
+                "No gallery events",
+                "Create your first gallery event above."
+            );
 
         return;
-
     }
 
 
     container.innerHTML =
         galleryData
-            .map(
-                galleryEvent => {
+            .map(event => {
 
-                    const eventId =
-                        Number(
-                            galleryEvent.id
-                        );
-
-
-                    const photos =
-                        Array.isArray(
-                            galleryEvent.photos
-                        )
-                            ? galleryEvent.photos
-                            : [];
+                const cover =
+                    getImageValue(
+                        event.cover_photo
+                    );
 
 
-                    const cover =
-                        getImageURL(
-                            galleryEvent.cover_photo ||
-                            galleryEvent.cover ||
-                            galleryEvent.cover_url ||
-                            ""
-                        );
+                const photos =
+                    Array.isArray(event.photos)
+                        ? event.photos
+                        : [];
 
 
-                    const photosHTML =
-                        photos.length
-                            ? photos
-                                .map(
-                                    photo => {
+                const photosHTML =
+                    photos.length
+                        ? photos
+                            .map(photo => {
 
-                                        const photoId =
-                                            Number(
-                                                photo.id
-                                            );
+                                const photoURL =
+                                    getImageValue(
+                                        photo.photo_url
+                                        || photo.url
+                                        || photo.photo
+                                        || photo.image_url
+                                    );
 
+                                return `
+                                    <div class="gallery-photo-item">
 
-                                        const photoURL =
-                                            getGalleryPhotoURL(
-                                                photo
-                                            );
+                                        <div class="gallery-photo-image">
 
+                                            ${
+                                                photoURL
+                                                ? `
+                                                    <img
+                                                        src="${escapeAttribute(
+                                                            normalizeImageUrl(
+                                                                photoURL
+                                                            )
+                                                        )}"
+                                                        alt=""
+                                                        loading="lazy"
+                                                        onerror="
+                                                            this.style.display='none';
+                                                            this.parentElement
+                                                            .querySelector('.image-fallback')
+                                                            .style.display='grid';
+                                                        "
+                                                    >
+                                                `
+                                                : ""
+                                            }
 
-                                        const isCover =
-                                            cover &&
-                                            photoURL &&
-                                            cover === photoURL;
-
-
-                                        return `
-                                            <div class="gallery-photo-item">
-
-                                                ${
+                                            <div
+                                                class="image-fallback"
+                                                style="${
                                                     photoURL
-                                                        ? `
-                                                            <img
-                                                                src="${escapeAttribute(photoURL)}"
-                                                                alt="Gallery Photo"
-                                                                loading="lazy"
-                                                                onerror="this.style.display='none';"
-                                                            >
-                                                          `
-                                                        : `
-                                                            <div
-                                                                class="gallery-admin-cover-placeholder"
-                                                                style="height:180px;"
-                                                            >
-                                                                🖼️
-                                                            </div>
-                                                          `
-                                                }
-
-
-                                                ${
-                                                    isCover
-                                                        ? `
-                                                            <div class="cover-badge">
-                                                                COVER
-                                                            </div>
-                                                          `
-                                                        : ""
-                                                }
-
-
-                                                <div class="gallery-photo-actions">
-
-                                                    <button
-                                                        type="button"
-                                                        onclick="setGalleryCover(${eventId}, ${photoId})"
-                                                    >
-                                                        Set Cover
-                                                    </button>
-
-
-                                                    <button
-                                                        type="button"
-                                                        class="danger-small"
-                                                        onclick="deleteGalleryPhoto(${photoId})"
-                                                    >
-                                                        Delete
-                                                    </button>
-
-                                                </div>
-
+                                                        ? "display:none;"
+                                                        : "display:grid;"
+                                                }"
+                                            >
+                                                🖼️
                                             </div>
-                                        `;
 
-                                    }
-                                )
-                                .join("")
-                            : `
-                                <div class="gallery-no-photos">
-                                    No photos uploaded yet.
-                                </div>
-                            `;
+                                        </div>
 
 
-                    return `
-                        <div class="gallery-admin-card">
+                                        <div class="gallery-photo-actions">
+
+                                            <button
+                                                type="button"
+                                                class="cover-btn"
+                                                onclick="setGalleryCover(${event.id}, ${photo.id})"
+                                            >
+                                                Cover
+                                            </button>
+
+                                            <button
+                                                type="button"
+                                                class="delete-btn"
+                                                onclick="deleteGalleryPhoto(${photo.id})"
+                                            >
+                                                Delete
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+                                `;
+
+                            })
+                            .join("")
+                        : `
+                            <div class="empty-state">
+                                <strong>
+                                    No photos yet
+                                </strong>
+                                Upload photos for this event above.
+                            </div>
+                        `;
 
 
-                            <div class="gallery-admin-header">
+                return `
+                    <div class="gallery-admin-card">
 
-                                <div>
+                        <div class="gallery-admin-header">
 
-                                    <h3>
-                                        ${escapeHTML(
-                                            galleryEvent.title ||
-                                            galleryEvent.name ||
-                                            "Gallery Event"
-                                        )}
-                                    </h3>
+                            <div>
+
+                                <h2>
+                                    ${escapeHTML(
+                                        event.title
+                                    )}
+                                </h2>
+
+                                <p>
+                                    ${escapeHTML(
+                                        event.description
+                                    )}
+                                </p>
+
+                                ${
+                                    event.event_date
+                                    ? `
+                                        <small>
+                                            ${escapeHTML(
+                                                event.event_date
+                                            )}
+                                        </small>
+                                    `
+                                    : ""
+                                }
+
+                            </div>
 
 
-                                    <p>
-                                        ${escapeHTML(
-                                            galleryEvent.event_date ||
-                                            ""
-                                        )}
-                                    </p>
+                            <div class="gallery-event-actions">
 
-
-                                    <small>
-                                        ${escapeHTML(
-                                            galleryEvent.description ||
-                                            ""
-                                        )}
-                                    </small>
-
-                                </div>
-
+                                <button
+                                    type="button"
+                                    class="edit-btn"
+                                    onclick="openGalleryEdit(${event.id})"
+                                >
+                                    Edit Event
+                                </button>
 
                                 <button
                                     type="button"
                                     class="delete-btn"
-                                    onclick="deleteGalleryEvent(${eventId})"
+                                    onclick="deleteGalleryEvent(${event.id})"
                                 >
                                     Delete Event
                                 </button>
 
                             </div>
 
+                        </div>
 
 
-                            ${
-                                cover
-                                    ? `
-                                        <div class="gallery-cover-preview">
+                        ${
+                            cover
+                            ? `
+                                <div class="gallery-cover-preview">
 
-                                            <img
-                                                src="${escapeAttribute(cover)}"
-                                                alt="Gallery Cover"
-                                                loading="lazy"
-                                                onerror="this.style.display='none';"
-                                            >
+                                    <img
+                                        src="${escapeAttribute(
+                                            normalizeImageUrl(
+                                                cover
+                                            )
+                                        )}"
+                                        alt="Gallery cover"
+                                        loading="lazy"
+                                    >
 
-                                            <span>
-                                                Current Cover
-                                            </span>
+                                    <span class="cover-label">
+                                        Current Cover
+                                    </span>
 
-                                        </div>
-                                      `
-                                    : `
-                                        <div class="gallery-cover-preview">
-
-                                            <div class="gallery-admin-cover-placeholder">
-                                                🖼️
-                                            </div>
-
-                                        </div>
-                                      `
-                            }
-
+                                </div>
+                            `
+                            : `
+                                <div class="empty-state">
+                                    No cover photo selected.
+                                </div>
+                            `
+                        }
 
 
-                            <div class="gallery-upload-box">
+                        <div class="gallery-upload-box">
 
-                                <form
-                                    onsubmit="uploadGalleryPhotos(event, ${eventId})"
-                                    enctype="multipart/form-data"
+                            <form
+                                onsubmit="uploadGalleryPhotos(event, ${event.id})"
+                                enctype="multipart/form-data"
+                            >
+
+                                <input
+                                    type="file"
+                                    name="photos"
+                                    accept=".jpg,.jpeg,.png,.webp"
+                                    multiple
+                                    required
                                 >
 
-                                    <input
-                                        type="file"
-                                        name="photos"
-                                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
-                                        multiple
-                                        required
-                                    >
+                                <button
+                                    type="submit"
+                                    class="primary-btn"
+                                >
+                                    Upload Photos
+                                </button>
 
-
-                                    <button
-                                        type="submit"
-                                        class="primary-btn"
-                                    >
-                                        Upload Photos
-                                    </button>
-
-                                </form>
-
-                            </div>
-
-
-
-                            <div class="gallery-admin-grid">
-
-                                ${photosHTML}
-
-                            </div>
-
+                            </form>
 
                         </div>
-                    `;
 
-                }
-            )
+
+                        <div class="gallery-admin-grid">
+
+                            ${photosHTML}
+
+                        </div>
+
+                    </div>
+                `;
+
+            })
             .join("");
-
 }
 
 
+/* =========================================================
+   CREATE GALLERY EVENT
+========================================================= */
 
-/* =====================================================
+async function createGalleryEvent(
+    event
+) {
+
+    event.preventDefault();
+
+    const form =
+        event.target;
+
+    const formData =
+        new FormData(form);
+
+    try {
+
+        await apiFetch(
+            "/api/admin/gallery/event",
+            {
+                method: "POST",
+                body: formData
+            }
+        );
+
+        form.reset();
+
+        await loadAdminGallery();
+
+        showToast(
+            "Gallery event created"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+/* =========================================================
+   EDIT GALLERY EVENT
+========================================================= */
+
+function openGalleryEdit(id) {
+
+    const event =
+        galleryData.find(
+            item => Number(item.id) === Number(id)
+        );
+
+    if (!event) return;
+
+
+    document.getElementById(
+        "editType"
+    ).value = "gallery";
+
+    document.getElementById(
+        "editId"
+    ).value = event.id;
+
+    document.getElementById(
+        "editModalTitle"
+    ).textContent =
+        "Edit Gallery Event";
+
+
+    editFields.innerHTML = `
+
+        <div class="form-group">
+
+            <label>
+                Event Title
+            </label>
+
+            <input
+                type="text"
+                name="title"
+                value="${escapeAttribute(
+                    event.title
+                )}"
+                required
+            >
+
+        </div>
+
+
+        <div class="form-group">
+
+            <label>
+                Event Date
+            </label>
+
+            <input
+                type="date"
+                name="event_date"
+                value="${escapeAttribute(
+                    event.event_date || ""
+                )}"
+            >
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>
+                Description
+            </label>
+
+            <textarea
+                name="description"
+                rows="5"
+            >${escapeHTML(
+                event.description || ""
+            )}</textarea>
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>
+                Current Cover
+            </label>
+
+            ${
+                normalizeImageUrl(
+                    event.cover_photo
+                )
+                ? `
+                    <div class="current-edit-image">
+
+                        <img
+                            src="${escapeAttribute(
+                                normalizeImageUrl(
+                                    event.cover_photo
+                                )
+                            )}"
+                            alt=""
+                        >
+
+                    </div>
+                `
+                : `
+                    <div class="no-photo-text">
+                        No cover photo.
+                    </div>
+                `
+            }
+
+        </div>
+
+
+        <div class="form-group full-width">
+
+            <label>
+                Replace Cover Photo
+            </label>
+
+            <input
+                type="file"
+                name="cover_photo"
+                accept=".jpg,.jpeg,.png,.webp"
+            >
+
+            <small>
+                Leave empty to keep the current cover.
+            </small>
+
+        </div>
+
+    `;
+
+    openEditModal();
+}
+
+
+/* =========================================================
    UPLOAD GALLERY PHOTOS
-===================================================== */
+========================================================= */
 
 async function uploadGalleryPhotos(
     event,
@@ -1984,18 +2224,15 @@ async function uploadGalleryPhotos(
 
     event.preventDefault();
 
-
     const form =
         event.target;
-
 
     const formData =
         new FormData(form);
 
-
     try {
 
-        const response =
+        const result =
             await apiFetch(
                 `/api/admin/gallery/${eventId}/photos`,
                 {
@@ -2004,50 +2241,25 @@ async function uploadGalleryPhotos(
                 }
             );
 
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to upload gallery photos."
-            );
-
-        }
-
-
-        alert(
-            "Photos uploaded successfully."
-        );
-
-
         form.reset();
-
 
         await loadAdminGallery();
 
+        showToast(
+            `${result.count || 0} photo(s) uploaded`
+        );
 
     } catch (error) {
 
-        console.error(error);
-
-        alert(
-            error.message
-        );
+        alert(error.message);
 
     }
-
 }
 
 
-
-/* =====================================================
+/* =========================================================
    SET GALLERY COVER
-===================================================== */
+========================================================= */
 
 async function setGalleryCover(
     eventId,
@@ -2056,288 +2268,207 @@ async function setGalleryCover(
 
     try {
 
-        const response =
-            await apiFetch(
-                `/api/admin/gallery/${eventId}/cover/${photoId}`,
-                {
-                    method: "PUT"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to set cover."
-            );
-
-        }
-
-
-        await loadAdminGallery();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            error.message
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   DELETE GALLERY PHOTO
-===================================================== */
-
-async function deleteGalleryPhoto(photoId) {
-
-    if (
-        !confirm(
-            "Delete this photo?"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const response =
-            await apiFetch(
-                `/api/admin/gallery/photo/${photoId}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to delete photo."
-            );
-
-        }
-
-
-        await loadAdminGallery();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            error.message
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   DELETE GALLERY EVENT
-===================================================== */
-
-async function deleteGalleryEvent(eventId) {
-
-    if (
-        !confirm(
-            "Delete this gallery event and all its photos?"
-        )
-    ) {
-
-        return;
-
-    }
-
-
-    try {
-
-        const response =
-            await apiFetch(
-                `/api/admin/gallery/event/${eventId}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-
-        const data =
-            await response.json()
-                .catch(() => ({}));
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.detail ||
-                "Unable to delete gallery event."
-            );
-
-        }
-
-
-        await loadAdminGallery();
-
-
-    } catch (error) {
-
-        console.error(error);
-
-        alert(
-            error.message
-        );
-
-    }
-
-}
-
-
-
-/* =====================================================
-   ESCAPE HTML
-===================================================== */
-
-function escapeHTML(value) {
-
-    return String(
-        value ?? ""
-    )
-        .replace(
-            /[&<>"']/g,
-            character => {
-
-                const map = {
-
-                    "&": "&amp;",
-
-                    "<": "&lt;",
-
-                    ">": "&gt;",
-
-                    '"': "&quot;",
-
-                    "'": "&#039;"
-
-                };
-
-
-                return map[
-                    character
-                ];
-
+        await apiFetch(
+            `/api/admin/gallery/${eventId}/cover/${photoId}`,
+            {
+                method: "PUT"
             }
         );
 
+        await loadAdminGallery();
+
+        showToast(
+            "Cover photo updated"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
 }
 
 
-function escapeAttribute(value) {
+/* =========================================================
+   DELETE GALLERY PHOTO
+========================================================= */
 
-    return escapeHTML(value);
+async function deleteGalleryPhoto(
+    photoId
+) {
 
+    if (
+        !confirm(
+            "Delete this gallery photo?"
+        )
+    ) {
+
+        return;
+    }
+
+    try {
+
+        await apiFetch(
+            `/api/admin/gallery/photo/${photoId}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        await loadAdminGallery();
+
+        showToast(
+            "Photo deleted"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
 }
 
 
+/* =========================================================
+   DELETE GALLERY EVENT
+========================================================= */
 
-/* =====================================================
+async function deleteGalleryEvent(
+    eventId
+) {
+
+    if (
+        !confirm(
+            "Delete this event and all its photos?"
+        )
+    ) {
+
+        return;
+    }
+
+    try {
+
+        await apiFetch(
+            `/api/admin/gallery/event/${eventId}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+        await loadAdminGallery();
+
+        showToast(
+            "Gallery event deleted"
+        );
+
+    } catch (error) {
+
+        alert(error.message);
+
+    }
+}
+
+
+/* =========================================================
+   EMPTY STATE
+========================================================= */
+
+function emptyState(
+    title,
+    message
+) {
+
+    return `
+        <div class="empty-state">
+
+            <strong>
+                ${escapeHTML(title)}
+            </strong>
+
+            ${escapeHTML(message)}
+
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   REFRESH
+========================================================= */
+
+async function refreshAll() {
+
+    try {
+
+        await Promise.all([
+            loadAdminData(),
+            loadAdminGallery()
+        ]);
+
+    } catch (error) {
+
+        console.error(error);
+
+        if (
+            getToken()
+        ) {
+
+            showToast(
+                error.message
+            );
+        }
+    }
+}
+
+
+/* =========================================================
+   ESC KEY FOR MODAL
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    event => {
+
+        if (
+            event.key === "Escape"
+            && editModal.classList.contains("show")
+        ) {
+
+            closeEditModal();
+
+        }
+
+    }
+);
+
+
+/* =========================================================
    INITIAL LOAD
-===================================================== */
+========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
-    async function () {
+    async () => {
 
-        const token =
-            getToken();
+        if (getToken()) {
 
+            showAdmin();
 
-        const loginPage =
-            document.getElementById(
-                "loginPage"
-            );
+            try {
 
+                await refreshAll();
 
-        const adminApp =
-            document.getElementById(
-                "adminApp"
-            );
+            } catch {
 
+                clearToken();
 
-        if (!token) {
-
-            if (loginPage) {
-
-                loginPage.style.display =
-                    "flex";
+                showLogin();
 
             }
 
+        } else {
 
-            if (adminApp) {
-
-                adminApp.style.display =
-                    "none";
-
-            }
-
-
-            return;
-
-        }
-
-
-        if (loginPage) {
-
-            loginPage.style.display =
-                "none";
-
-        }
-
-
-        if (adminApp) {
-
-            adminApp.style.display =
-                "flex";
-
-        }
-
-
-        try {
-
-            await loadAdminData();
-
-            await loadAdminGallery();
-
-        } catch (error) {
-
-            console.error(
-                "Initial loading error:",
-                error
-            );
+            showLogin();
 
         }
 
