@@ -2,11 +2,25 @@
     box-sizing: border-box;
 }
 
+html,
 body {
     margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
     font-family: Arial, Helvetica, sans-serif;
     background: #f5f7fb;
     color: #172033;
+    overflow-x: hidden;
+}
+
+button,
+input,
+textarea {
+    font: inherit;
 }
 
 
@@ -16,18 +30,17 @@ body {
 
 .login-page {
     min-height: 100vh;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    background:
-        linear-gradient(
-            135deg,
-            #071a38,
-            #102f5d
-        );
+    background: linear-gradient(
+        135deg,
+        #071a38,
+        #102f5d
+    );
     padding: 20px;
 }
-
 
 .login-box {
     width: 100%;
@@ -35,10 +48,9 @@ body {
     background: #fff;
     padding: 40px;
     border-radius: 18px;
-    box-shadow: 0 25px 70px rgba(0,0,0,0.25);
+    box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25);
     text-align: center;
 }
-
 
 .login-logo {
     width: 65px;
@@ -53,17 +65,15 @@ body {
     font-weight: 900;
 }
 
-
 .login-box h1 {
     margin: 20px 0 5px;
     color: #071a38;
+    font-size: 26px;
 }
-
 
 .login-box p {
     color: #687386;
 }
-
 
 .login-box input {
     width: 100%;
@@ -74,11 +84,9 @@ body {
     outline: none;
 }
 
-
 .login-box input:focus {
     border-color: #071a38;
 }
-
 
 .error-message {
     color: #d62828 !important;
@@ -91,6 +99,7 @@ body {
 
 .admin-app {
     min-height: 100vh;
+    width: 100%;
     display: flex;
 }
 
@@ -101,6 +110,7 @@ body {
 
 .sidebar {
     width: 250px;
+    min-width: 250px;
     min-height: 100vh;
     background: #071a38;
     color: #fff;
@@ -108,21 +118,22 @@ body {
     left: 0;
     top: 0;
     bottom: 0;
+    z-index: 100;
+    overflow-y: auto;
 }
-
 
 .sidebar-brand {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 25px 20px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
-
 
 .sidebar-logo {
     width: 45px;
     height: 45px;
+    min-width: 45px;
     display: grid;
     place-items: center;
     background: #d7a83e;
@@ -132,12 +143,10 @@ body {
     font-weight: 900;
 }
 
-
 .sidebar-brand strong {
     display: block;
     font-size: 17px;
 }
-
 
 .sidebar-brand small {
     display: block;
@@ -145,11 +154,9 @@ body {
     color: #c8d0dc;
 }
 
-
 .sidebar-nav {
     padding: 20px 12px;
 }
-
 
 .sidebar-nav button,
 .sidebar-nav a {
@@ -167,13 +174,11 @@ body {
     cursor: pointer;
 }
 
-
 .sidebar-nav button:hover,
 .sidebar-nav a:hover {
-    background: rgba(215,168,62,0.15);
+    background: rgba(215, 168, 62, 0.15);
     color: #d7a83e;
 }
-
 
 .sidebar-nav .logout-btn {
     margin-top: 20px;
@@ -187,9 +192,9 @@ body {
 
 .admin-main {
     width: calc(100% - 250px);
+    min-width: 0;
     margin-left: 250px;
 }
-
 
 .admin-topbar {
     height: 75px;
@@ -203,21 +208,39 @@ body {
     z-index: 20;
 }
 
-
 .admin-topbar h2 {
     margin: 0;
     color: #071a38;
+    font-size: 24px;
 }
-
 
 .admin-section {
     display: none;
+    width: 100%;
     padding: 35px;
 }
 
-
 .admin-section.active {
     display: block;
+}
+
+
+/* =========================================================
+   SECTION HEADER
+========================================================= */
+
+.section-header {
+    margin-bottom: 25px;
+}
+
+.section-header h2 {
+    margin: 0 0 5px;
+    color: #071a38;
+}
+
+.section-header p {
+    margin: 0;
+    color: #687386;
 }
 
 
@@ -227,26 +250,22 @@ body {
 
 .stats-grid {
     display: grid;
-    grid-template-columns:
-        repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 18px;
     margin-bottom: 30px;
 }
-
 
 .stat-card {
     background: #fff;
     padding: 25px;
     border-radius: 14px;
     border: 1px solid #e7eaf0;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.05);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
 }
-
 
 .stat-card span {
     font-size: 28px;
 }
-
 
 .stat-card h3 {
     margin: 12px 0 3px;
@@ -254,12 +273,10 @@ body {
     color: #071a38;
 }
 
-
 .stat-card p {
     margin: 0;
     color: #687386;
 }
-
 
 .welcome-card {
     background: #fff;
@@ -267,7 +284,6 @@ body {
     border-radius: 15px;
     border: 1px solid #e7eaf0;
 }
-
 
 .welcome-card h2 {
     color: #071a38;
@@ -283,16 +299,14 @@ body {
     padding: 28px;
     border-radius: 15px;
     border: 1px solid #e7eaf0;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.04);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
     margin-bottom: 30px;
 }
-
 
 .admin-form-card h3 {
     margin-top: 0;
     color: #071a38;
 }
-
 
 .admin-form-card input,
 .admin-form-card textarea {
@@ -305,18 +319,15 @@ body {
     font: inherit;
 }
 
-
 .admin-form-card input:focus,
 .admin-form-card textarea:focus {
     border-color: #071a38;
 }
 
-
 .admin-form-card textarea {
     min-height: 110px;
     resize: vertical;
 }
-
 
 .file-label {
     display: block;
@@ -325,7 +336,6 @@ body {
     font-weight: 700;
     color: #071a38;
 }
-
 
 .primary-btn {
     background: #d7a83e;
@@ -338,21 +348,19 @@ body {
     margin-top: 8px;
 }
 
-
 .primary-btn:hover {
     background: #c1922d;
 }
 
 
 /* =========================================================
-   LIST
+   ADMIN LIST
 ========================================================= */
 
 .admin-list {
     display: grid;
     gap: 15px;
 }
-
 
 .admin-item {
     background: #fff;
@@ -364,22 +372,30 @@ body {
     gap: 18px;
 }
 
+.admin-item-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
 
 .admin-item-image {
     width: 100px;
     height: 100px;
-    flex-shrink: 0;
+    min-width: 100px;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #eef1f5;
 }
-
 
 .admin-item-image img,
 .admin-placeholder {
     width: 100%;
     height: 100%;
+    display: block;
     object-fit: cover;
-    border-radius: 10px;
 }
-
 
 .admin-placeholder {
     display: grid;
@@ -390,28 +406,34 @@ body {
     font-weight: 900;
 }
 
-
 .admin-item-content {
     flex: 1;
+    min-width: 0;
 }
 
-
-.admin-item-content h3 {
+.admin-item-content h3,
+.admin-item-info h3 {
     margin: 0 0 5px;
     color: #071a38;
 }
 
-
-.admin-item-content strong {
+.admin-item-content strong,
+.admin-item-info strong {
     color: #b0801f;
 }
 
-
-.admin-item-content p {
+.admin-item-content p,
+.admin-item-info p {
     color: #687386;
     line-height: 1.6;
+    margin: 5px 0;
 }
 
+.admin-item-info small {
+    color: #687386;
+    line-height: 1.5;
+    display: block;
+}
 
 .delete-btn {
     background: #dc3545;
@@ -420,13 +442,12 @@ body {
     padding: 10px 14px;
     border-radius: 7px;
     cursor: pointer;
+    flex-shrink: 0;
 }
-
 
 .delete-btn:hover {
     background: #b42332;
 }
-
 
 .empty-state {
     background: #fff;
@@ -447,65 +468,66 @@ body {
     gap: 25px;
 }
 
-
-.gallery-event-admin {
+.gallery-admin-card {
     background: #fff;
     border: 1px solid #e3e7ee;
     border-radius: 16px;
     padding: 22px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.04);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.04);
 }
 
-
-.gallery-event-header {
+.gallery-admin-header {
     display: flex;
     justify-content: space-between;
     gap: 20px;
     align-items: flex-start;
 }
 
-
-.gallery-event-header h3 {
+.gallery-admin-header h3 {
     margin: 0 0 8px;
     color: #071a38;
     font-size: 22px;
 }
 
-
-.gallery-event-header span {
+.gallery-admin-header p {
     color: #b0801f;
+    margin: 5px 0;
     font-weight: 700;
-    font-size: 14px;
 }
 
-
-.gallery-event-header p {
+.gallery-admin-header small {
     color: #687386;
-    margin: 8px 0;
+    line-height: 1.6;
 }
-
-
-.gallery-event-header strong {
-    color: #071a38;
-}
-
 
 .gallery-cover-preview {
     width: 100%;
-    height: 240px;
+    height: 260px;
     margin-top: 18px;
     border-radius: 12px;
     overflow: hidden;
     background: #eef1f5;
+    position: relative;
 }
-
 
 .gallery-cover-preview img {
     width: 100%;
     height: 100%;
+    display: block;
     object-fit: cover;
 }
 
+.gallery-cover-preview span {
+    position: absolute;
+    left: 12px;
+    bottom: 12px;
+    background: rgba(7, 26, 56, 0.85);
+    color: #fff;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 700;
+}
 
 .gallery-admin-cover-placeholder {
     width: 100%;
@@ -516,7 +538,6 @@ body {
     color: #8c96a5;
 }
 
-
 .gallery-upload-box {
     background: #f7f8fb;
     border: 1px dashed #ccd2dc;
@@ -525,7 +546,6 @@ body {
     margin-top: 18px;
 }
 
-
 .gallery-upload-box label {
     display: block;
     font-weight: 700;
@@ -533,24 +553,20 @@ body {
     color: #071a38;
 }
 
-
 .gallery-upload-box input {
     display: block;
     width: 100%;
     margin-bottom: 8px;
 }
 
-
-.gallery-admin-photos {
+.gallery-admin-grid {
     display: grid;
-    grid-template-columns:
-        repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 15px;
     margin-top: 20px;
 }
 
-
-.gallery-admin-photo {
+.gallery-photo-item {
     position: relative;
     border: 1px solid #e3e7ee;
     border-radius: 10px;
@@ -558,14 +574,13 @@ body {
     background: #fff;
 }
 
-
-.gallery-admin-photo > img {
+.gallery-photo-item > img {
     width: 100%;
-    height: 170px;
+    height: 180px;
     display: block;
     object-fit: cover;
+    background: #eef1f5;
 }
-
 
 .cover-badge {
     position: absolute;
@@ -579,17 +594,15 @@ body {
     font-weight: 900;
 }
 
-
 .gallery-photo-actions {
     padding: 8px;
     display: flex;
     gap: 6px;
 }
 
-
 .gallery-photo-actions button {
     flex: 1;
-    padding: 7px;
+    padding: 8px;
     border: 0;
     border-radius: 5px;
     background: #071a38;
@@ -598,11 +611,13 @@ body {
     font-size: 11px;
 }
 
+.gallery-photo-actions button:hover {
+    opacity: 0.9;
+}
 
 .gallery-photo-actions .danger-small {
     background: #dc3545;
 }
-
 
 .gallery-no-photos {
     grid-column: 1 / -1;
@@ -615,28 +630,31 @@ body {
 
 
 /* =========================================================
-   MOBILE
+   TABLET
 ========================================================= */
 
 @media (max-width: 1100px) {
 
     .stats-grid {
-        grid-template-columns:
-            repeat(3, 1fr);
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .gallery-admin-photos {
-        grid-template-columns:
-            repeat(3, 1fr);
+    .gallery-admin-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
 }
 
 
+/* =========================================================
+   SMALL TABLET
+========================================================= */
+
 @media (max-width: 850px) {
 
     .sidebar {
         width: 210px;
+        min-width: 210px;
     }
 
     .admin-main {
@@ -649,112 +667,30 @@ body {
     }
 
     .stats-grid {
-        grid-template-columns:
-            repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .gallery-admin-photos {
-        grid-template-columns:
-            repeat(2, 1fr);
+    .gallery-admin-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-}
-
-
-@media (max-width: 650px) {
-
-    .admin-app {
-        display: block;
-    }
-
-    .sidebar {
-        position: relative;
-        width: 100%;
-        min-height: auto;
-    }
-
-    .sidebar-brand {
-        padding: 15px 20px;
-    }
-
-    .sidebar-nav {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 5px;
-        padding: 10px;
-    }
-
-    .sidebar-nav button,
-    .sidebar-nav a {
-        margin: 0;
-    }
-
-    .admin-main {
-        width: 100%;
-        margin-left: 0;
-    }
-
-    .admin-topbar {
-        position: relative;
-        padding: 0 20px;
-    }
-
-    .admin-section {
-        padding: 20px;
-    }
-
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .admin-item {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .admin-item-image {
-        width: 100%;
-        height: 220px;
-    }
-
-    .admin-item-image img,
-    .admin-placeholder {
-        border-radius: 10px;
-    }
-
-    .delete-btn {
-        width: 100%;
-    }
-
-    .gallery-event-header {
-        flex-direction: column;
-    }
-
-    .gallery-event-header .delete-btn {
-        width: 100%;
-    }
-
-    .gallery-admin-photos {
-        grid-template-columns: 1fr;
-    }
-
-    .gallery-admin-photo > img {
-        height: 230px;
+    .admin-item-info {
+        gap: 12px;
     }
 
 }
+
+
 /* =========================================================
-   MOBILE FULL WIDTH FIX
+   MOBILE
 ========================================================= */
 
-@media screen and (max-width: 650px) {
+@media (max-width: 650px) {
 
     html,
     body {
         width: 100%;
         min-width: 100%;
-        margin: 0;
-        padding: 0;
         overflow-x: hidden;
     }
 
@@ -764,64 +700,215 @@ body {
         min-height: 100vh;
     }
 
-    /* NAVBAR */
+    /* SIDEBAR */
+
     .sidebar {
         position: relative !important;
+        width: 100% !important;
+        min-width: 100% !important;
+        max-width: 100% !important;
+        min-height: auto !important;
+        height: auto !important;
         top: auto !important;
         left: auto !important;
         right: auto !important;
         bottom: auto !important;
-
-        width: 100% !important;
-        min-width: 100% !important;
-        max-width: 100% !important;
-
-        height: auto !important;
-        min-height: auto !important;
-
-        display: block !important;
+        overflow: visible !important;
     }
 
-    /* NAV BUTTONS */
+    .sidebar-brand {
+        padding: 15px;
+    }
+
     .sidebar-nav {
-        width: 100% !important;
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-
-        overflow-x: auto !important;
-        overflow-y: hidden !important;
-
-        padding: 10px !important;
+        width: 100%;
+        padding: 10px;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 6px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scrollbar-width: thin;
     }
 
     .sidebar-nav button,
     .sidebar-nav a {
-        flex: 0 0 auto !important;
-        width: auto !important;
-        min-width: max-content !important;
+        width: auto;
+        min-width: max-content;
+        flex: 0 0 auto;
+        margin: 0;
+        padding: 11px 13px;
+        font-size: 13px;
+        white-space: nowrap;
     }
 
-    /* DASHBOARD / MAIN */
-    .admin-main {
-        position: relative !important;
+    .sidebar-nav .logout-btn {
+        margin-top: 0;
+    }
 
+    /* MAIN */
+
+    .admin-main {
         width: 100% !important;
         min-width: 0 !important;
         max-width: 100% !important;
-
-        margin-left: 0 !important;
-        margin-right: 0 !important;
-
+        margin: 0 !important;
         display: block !important;
     }
 
     .admin-topbar {
-        width: 100% !important;
+        width: 100%;
+        height: 65px;
+        padding: 0 15px;
+        position: relative;
+    }
+
+    .admin-topbar h2 {
+        font-size: 20px;
     }
 
     .admin-section {
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 100%;
+        padding: 15px;
     }
+
+    /* DASHBOARD */
+
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 20px;
+    }
+
+    .welcome-card {
+        padding: 22px;
+    }
+
+    /* FORMS */
+
+    .admin-form-card {
+        padding: 18px;
+    }
+
+    .primary-btn {
+        width: 100%;
+    }
+
+    /* ADMIN ITEMS */
+
+    .admin-item {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 15px;
+    }
+
+    .admin-item-info {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .admin-item-image {
+        width: 100%;
+        height: 240px;
+        min-width: 0;
+    }
+
+    .delete-btn {
+        width: 100%;
+    }
+
+    /* GALLERY */
+
+    .gallery-admin-card {
+        padding: 15px;
+    }
+
+    .gallery-admin-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .gallery-admin-header .delete-btn {
+        width: 100%;
+    }
+
+    .gallery-cover-preview {
+        height: 220px;
+    }
+
+    .gallery-admin-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .gallery-photo-item > img {
+        height: 240px;
+    }
+
+    .gallery-photo-actions {
+        flex-direction: row;
+    }
+
+    .gallery-photo-actions button {
+        min-height: 40px;
+    }
+
+    /* LOGIN */
+
+    .login-page {
+        padding: 15px;
+    }
+
+    .login-box {
+        padding: 28px 20px;
+    }
+
+    .login-box h1 {
+        font-size: 22px;
+    }
+
+}
+
+
+/* =========================================================
+   VERY SMALL MOBILE
+========================================================= */
+
+@media (max-width: 400px) {
+
+    .sidebar-brand strong {
+        font-size: 15px;
+    }
+
+    .sidebar-brand small {
+        font-size: 11px;
+    }
+
+    .sidebar-nav button,
+    .sidebar-nav a {
+        padding: 10px;
+        font-size: 12px;
+    }
+
+    .admin-section {
+        padding: 12px;
+    }
+
+    .admin-form-card {
+        padding: 15px;
+    }
+
+    .gallery-photo-actions {
+        flex-direction: column;
+    }
+
+    .gallery-photo-actions button {
+        width: 100%;
+    }
+
 }

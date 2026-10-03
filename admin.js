@@ -24,7 +24,6 @@ function getToken() {
 }
 
 
-
 function clearToken() {
 
     localStorage.removeItem("adminToken");
@@ -37,13 +36,9 @@ function clearToken() {
    API FETCH
 ===================================================== */
 
-async function apiFetch(
-    url,
-    options = {}
-) {
+async function apiFetch(url, options = {}) {
 
     const token = getToken();
-
 
     const headers = new Headers(
         options.headers || {}
@@ -83,6 +78,93 @@ async function apiFetch(
 
 
     return response;
+
+}
+
+
+
+/* =====================================================
+   IMAGE URL
+===================================================== */
+
+function getImageURL(value) {
+
+    if (!value) {
+        return "";
+    }
+
+
+    let url = String(value).trim();
+
+
+    if (!url) {
+        return "";
+    }
+
+
+    /*
+       Cloudinary URL
+    */
+
+    if (
+        url.startsWith("http://") ||
+        url.startsWith("https://")
+    ) {
+
+        return url;
+
+    }
+
+
+    /*
+       Local uploaded image URL
+    */
+
+    if (url.startsWith("/")) {
+
+        return `${API_URL}${url}`;
+
+    }
+
+
+    return url;
+
+}
+
+
+
+/* =====================================================
+   IMAGE HTML
+===================================================== */
+
+function createImageHTML(
+    photo,
+    fallbackLetter = "V"
+) {
+
+    const url =
+        getImageURL(photo);
+
+
+    if (!url) {
+
+        return `
+            <div class="admin-placeholder">
+                ${escapeHTML(fallbackLetter)}
+            </div>
+        `;
+
+    }
+
+
+    return `
+        <img
+            src="${escapeAttribute(url)}"
+            alt=""
+            loading="lazy"
+            onerror="this.onerror=null; this.parentElement.innerHTML='<div class=&quot;admin-placeholder&quot;>${escapeHTML(fallbackLetter)}</div>';"
+        >
+    `;
 
 }
 
@@ -426,6 +508,12 @@ function showTab(tabName) {
 
     }
 
+
+    window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+    });
+
 }
 
 
@@ -562,11 +650,7 @@ function updateDashboardCounts() {
 }
 
 
-
-function setText(
-    id,
-    value
-) {
+function setText(id, value) {
 
     const element =
         document.getElementById(id);
@@ -613,7 +697,8 @@ async function addFaculty(event) {
 
 
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
 
 
         if (!response.ok) {
@@ -664,9 +749,7 @@ function renderFacultyList() {
 
 
     if (!container) {
-
         return;
-
     }
 
 
@@ -689,15 +772,11 @@ function renderFacultyList() {
             .map(
                 faculty => {
 
-                    const image =
-                        faculty.photo
-                            ? `
-                                <img
-                                    src="${escapeAttribute(faculty.photo)}"
-                                    alt=""
-                                >
-                              `
-                            : "";
+                    const photo =
+                        faculty.photo ||
+                        faculty.image ||
+                        faculty.photo_url ||
+                        "";
 
 
                     return `
@@ -705,20 +784,37 @@ function renderFacultyList() {
 
                             <div class="admin-item-info">
 
-                                ${image}
+                                <div class="admin-item-image">
 
-                                <div>
+                                    ${createImageHTML(
+                                        photo,
+                                        "F"
+                                    )}
+
+                                </div>
+
+                                <div class="admin-item-content">
 
                                     <h3>
-                                        ${escapeHTML(faculty.name)}
+                                        ${escapeHTML(
+                                            faculty.name
+                                        )}
                                     </h3>
 
                                     <p>
-                                        ${escapeHTML(faculty.subject || "")}
+                                        <strong>
+                                            ${escapeHTML(
+                                                faculty.subject ||
+                                                ""
+                                            )}
+                                        </strong>
                                     </p>
 
                                     <small>
-                                        ${escapeHTML(faculty.description || "")}
+                                        ${escapeHTML(
+                                            faculty.description ||
+                                            ""
+                                        )}
                                     </small>
 
                                 </div>
@@ -749,9 +845,7 @@ function renderFacultyList() {
    DELETE FACULTY
 ===================================================== */
 
-async function deleteFaculty(
-    id
-) {
+async function deleteFaculty(id) {
 
     if (
         !confirm(
@@ -846,7 +940,8 @@ async function addPerson(
 
 
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
 
 
         if (!response.ok) {
@@ -899,9 +994,7 @@ function renderTopperList() {
 
 
     if (!container) {
-
         return;
-
     }
 
 
@@ -924,15 +1017,11 @@ function renderTopperList() {
             .map(
                 topper => {
 
-                    const image =
-                        topper.photo
-                            ? `
-                                <img
-                                    src="${escapeAttribute(topper.photo)}"
-                                    alt=""
-                                >
-                              `
-                            : "";
+                    const photo =
+                        topper.photo ||
+                        topper.image ||
+                        topper.photo_url ||
+                        "";
 
 
                     return `
@@ -940,20 +1029,35 @@ function renderTopperList() {
 
                             <div class="admin-item-info">
 
-                                ${image}
+                                <div class="admin-item-image">
 
-                                <div>
+                                    ${createImageHTML(
+                                        photo,
+                                        "T"
+                                    )}
+
+                                </div>
+
+                                <div class="admin-item-content">
 
                                     <h3>
-                                        ${escapeHTML(topper.name)}
+                                        ${escapeHTML(
+                                            topper.name
+                                        )}
                                     </h3>
 
                                     <p>
-                                        ${escapeHTML(topper.details || "")}
+                                        ${escapeHTML(
+                                            topper.details ||
+                                            ""
+                                        )}
                                     </p>
 
                                     <small>
-                                        ${escapeHTML(topper.review || "")}
+                                        ${escapeHTML(
+                                            topper.review ||
+                                            ""
+                                        )}
                                     </small>
 
                                 </div>
@@ -984,9 +1088,7 @@ function renderTopperList() {
    DELETE TOPPER
 ===================================================== */
 
-async function deleteTopper(
-    id
-) {
+async function deleteTopper(id) {
 
     if (
         !confirm(
@@ -1055,9 +1157,7 @@ function renderAlumniList() {
 
 
     if (!container) {
-
         return;
-
     }
 
 
@@ -1080,15 +1180,11 @@ function renderAlumniList() {
             .map(
                 alumni => {
 
-                    const image =
-                        alumni.photo
-                            ? `
-                                <img
-                                    src="${escapeAttribute(alumni.photo)}"
-                                    alt=""
-                                >
-                              `
-                            : "";
+                    const photo =
+                        alumni.photo ||
+                        alumni.image ||
+                        alumni.photo_url ||
+                        "";
 
 
                     return `
@@ -1096,20 +1192,35 @@ function renderAlumniList() {
 
                             <div class="admin-item-info">
 
-                                ${image}
+                                <div class="admin-item-image">
 
-                                <div>
+                                    ${createImageHTML(
+                                        photo,
+                                        "A"
+                                    )}
+
+                                </div>
+
+                                <div class="admin-item-content">
 
                                     <h3>
-                                        ${escapeHTML(alumni.name)}
+                                        ${escapeHTML(
+                                            alumni.name
+                                        )}
                                     </h3>
 
                                     <p>
-                                        ${escapeHTML(alumni.details || "")}
+                                        ${escapeHTML(
+                                            alumni.details ||
+                                            ""
+                                        )}
                                     </p>
 
                                     <small>
-                                        ${escapeHTML(alumni.review || "")}
+                                        ${escapeHTML(
+                                            alumni.review ||
+                                            ""
+                                        )}
                                     </small>
 
                                 </div>
@@ -1140,9 +1251,7 @@ function renderAlumniList() {
    DELETE ALUMNI
 ===================================================== */
 
-async function deleteAlumni(
-    id
-) {
+async function deleteAlumni(id) {
 
     if (
         !confirm(
@@ -1202,9 +1311,7 @@ async function deleteAlumni(
    ADD REVIEW
 ===================================================== */
 
-async function addReview(
-    event
-) {
+async function addReview(event) {
 
     event.preventDefault();
 
@@ -1242,7 +1349,8 @@ async function addReview(
 
 
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
 
 
         if (!response.ok) {
@@ -1293,9 +1401,7 @@ function renderReviewList() {
 
 
     if (!container) {
-
         return;
-
     }
 
 
@@ -1323,14 +1429,18 @@ function renderReviewList() {
 
                             <div class="admin-item-info">
 
-                                <div>
+                                <div class="admin-item-content">
 
                                     <h3>
-                                        ${escapeHTML(review.name)}
+                                        ${escapeHTML(
+                                            review.name
+                                        )}
                                     </h3>
 
                                     <p>
-                                        ${escapeHTML(review.review)}
+                                        ${escapeHTML(
+                                            review.review
+                                        )}
                                     </p>
 
                                 </div>
@@ -1361,9 +1471,7 @@ function renderReviewList() {
    DELETE REVIEW
 ===================================================== */
 
-async function deleteReview(
-    id
-) {
+async function deleteReview(id) {
 
     if (
         !confirm(
@@ -1500,9 +1608,7 @@ async function loadAdminGallery() {
    CREATE GALLERY EVENT
 ===================================================== */
 
-async function createGalleryEvent(
-    event
-) {
+async function createGalleryEvent(event) {
 
     event.preventDefault();
 
@@ -1528,7 +1634,8 @@ async function createGalleryEvent(
 
 
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
 
 
         if (!response.ok) {
@@ -1567,6 +1674,30 @@ async function createGalleryEvent(
 
 
 /* =====================================================
+   GALLERY IMAGE URL
+===================================================== */
+
+function getGalleryPhotoURL(photo) {
+
+    if (!photo) {
+        return "";
+    }
+
+
+    return getImageURL(
+        photo.url ||
+        photo.photo ||
+        photo.image_url ||
+        photo.photo_url ||
+        photo.secure_url ||
+        ""
+    );
+
+}
+
+
+
+/* =====================================================
    RENDER GALLERY
 ===================================================== */
 
@@ -1579,9 +1710,7 @@ function renderGallery() {
 
 
     if (!container) {
-
         return;
-
     }
 
 
@@ -1602,84 +1731,126 @@ function renderGallery() {
     container.innerHTML =
         galleryData
             .map(
-                event => {
+                galleryEvent => {
 
                     const eventId =
                         Number(
-                            event.id
+                            galleryEvent.id
                         );
 
 
                     const photos =
                         Array.isArray(
-                            event.photos
+                            galleryEvent.photos
                         )
-                            ? event.photos
+                            ? galleryEvent.photos
                             : [];
 
 
                     const cover =
-                        event.cover_photo ||
-                        event.cover ||
-                        "";
+                        getImageURL(
+                            galleryEvent.cover_photo ||
+                            galleryEvent.cover ||
+                            galleryEvent.cover_url ||
+                            ""
+                        );
 
 
                     const photosHTML =
-                        photos
-                            .map(
-                                photo => {
+                        photos.length
+                            ? photos
+                                .map(
+                                    photo => {
 
-                                    const photoId =
-                                        Number(
-                                            photo.id
-                                        );
-
-
-                                    const photoURL =
-                                        photo.url ||
-                                        photo.photo ||
-                                        photo.image_url ||
-                                        photo.photo_url ||
-                                        "";
+                                        const photoId =
+                                            Number(
+                                                photo.id
+                                            );
 
 
-                                    return `
-                                        <div class="gallery-photo-item">
+                                        const photoURL =
+                                            getGalleryPhotoURL(
+                                                photo
+                                            );
 
-                                            <img
-                                                src="${escapeAttribute(photoURL)}"
-                                                alt=""
-                                            >
 
-                                            <div class="gallery-photo-actions">
+                                        const isCover =
+                                            cover &&
+                                            photoURL &&
+                                            cover === photoURL;
 
-                                                <button
-                                                    type="button"
-                                                    onclick="setGalleryCover(${eventId}, ${photoId})"
-                                                >
-                                                    Set Cover
-                                                </button>
 
-                                                <button
-                                                    type="button"
-                                                    class="delete-btn"
-                                                    onclick="deleteGalleryPhoto(${photoId})"
-                                                >
-                                                    Delete
-                                                </button>
+                                        return `
+                                            <div class="gallery-photo-item">
+
+                                                ${
+                                                    photoURL
+                                                        ? `
+                                                            <img
+                                                                src="${escapeAttribute(photoURL)}"
+                                                                alt="Gallery Photo"
+                                                                loading="lazy"
+                                                                onerror="this.style.display='none';"
+                                                            >
+                                                          `
+                                                        : `
+                                                            <div
+                                                                class="gallery-admin-cover-placeholder"
+                                                                style="height:180px;"
+                                                            >
+                                                                🖼️
+                                                            </div>
+                                                          `
+                                                }
+
+
+                                                ${
+                                                    isCover
+                                                        ? `
+                                                            <div class="cover-badge">
+                                                                COVER
+                                                            </div>
+                                                          `
+                                                        : ""
+                                                }
+
+
+                                                <div class="gallery-photo-actions">
+
+                                                    <button
+                                                        type="button"
+                                                        onclick="setGalleryCover(${eventId}, ${photoId})"
+                                                    >
+                                                        Set Cover
+                                                    </button>
+
+
+                                                    <button
+                                                        type="button"
+                                                        class="danger-small"
+                                                        onclick="deleteGalleryPhoto(${photoId})"
+                                                    >
+                                                        Delete
+                                                    </button>
+
+                                                </div>
 
                                             </div>
+                                        `;
 
-                                        </div>
-                                    `;
-
-                                }
-                            )
-                            .join("");
+                                    }
+                                )
+                                .join("")
+                            : `
+                                <div class="gallery-no-photos">
+                                    No photos uploaded yet.
+                                </div>
+                            `;
 
 
                     return `
                         <div class="gallery-admin-card">
+
 
                             <div class="gallery-admin-header">
 
@@ -1687,22 +1858,24 @@ function renderGallery() {
 
                                     <h3>
                                         ${escapeHTML(
-                                            event.title ||
-                                            event.name ||
+                                            galleryEvent.title ||
+                                            galleryEvent.name ||
                                             "Gallery Event"
                                         )}
                                     </h3>
 
+
                                     <p>
                                         ${escapeHTML(
-                                            event.event_date ||
+                                            galleryEvent.event_date ||
                                             ""
                                         )}
                                     </p>
 
+
                                     <small>
                                         ${escapeHTML(
-                                            event.description ||
+                                            galleryEvent.description ||
                                             ""
                                         )}
                                     </small>
@@ -1721,6 +1894,7 @@ function renderGallery() {
                             </div>
 
 
+
                             ${
                                 cover
                                     ? `
@@ -1728,7 +1902,9 @@ function renderGallery() {
 
                                             <img
                                                 src="${escapeAttribute(cover)}"
-                                                alt=""
+                                                alt="Gallery Cover"
+                                                loading="lazy"
+                                                onerror="this.style.display='none';"
                                             >
 
                                             <span>
@@ -1737,8 +1913,17 @@ function renderGallery() {
 
                                         </div>
                                       `
-                                    : ""
+                                    : `
+                                        <div class="gallery-cover-preview">
+
+                                            <div class="gallery-admin-cover-placeholder">
+                                                🖼️
+                                            </div>
+
+                                        </div>
+                                      `
                             }
+
 
 
                             <div class="gallery-upload-box">
@@ -1751,7 +1936,7 @@ function renderGallery() {
                                     <input
                                         type="file"
                                         name="photos"
-                                        accept=".jpg,.jpeg,.png,.webp"
+                                        accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                                         multiple
                                         required
                                     >
@@ -1769,18 +1954,13 @@ function renderGallery() {
                             </div>
 
 
+
                             <div class="gallery-admin-grid">
 
-                                ${
-                                    photosHTML ||
-                                    `
-                                    <div class="empty-state">
-                                        No photos uploaded yet.
-                                    </div>
-                                    `
-                                }
+                                ${photosHTML}
 
                             </div>
+
 
                         </div>
                     `;
@@ -1826,7 +2006,8 @@ async function uploadGalleryPhotos(
 
 
         const data =
-            await response.json();
+            await response.json()
+                .catch(() => ({}));
 
 
         if (!response.ok) {
@@ -1920,9 +2101,7 @@ async function setGalleryCover(
    DELETE GALLERY PHOTO
 ===================================================== */
 
-async function deleteGalleryPhoto(
-    photoId
-) {
+async function deleteGalleryPhoto(photoId) {
 
     if (
         !confirm(
@@ -1982,9 +2161,7 @@ async function deleteGalleryPhoto(
    DELETE GALLERY EVENT
 ===================================================== */
 
-async function deleteGalleryEvent(
-    eventId
-) {
+async function deleteGalleryEvent(eventId) {
 
     if (
         !confirm(
@@ -2044,9 +2221,7 @@ async function deleteGalleryEvent(
    ESCAPE HTML
 ===================================================== */
 
-function escapeHTML(
-    value
-) {
+function escapeHTML(value) {
 
     return String(
         value ?? ""
@@ -2057,20 +2232,15 @@ function escapeHTML(
 
                 const map = {
 
-                    "&":
-                        "&amp;",
+                    "&": "&amp;",
 
-                    "<":
-                        "&lt;",
+                    "<": "&lt;",
 
-                    ">":
-                        "&gt;",
+                    ">": "&gt;",
 
-                    '"':
-                        "&quot;",
+                    '"': "&quot;",
 
-                    "'":
-                        "&#039;"
+                    "'": "&#039;"
 
                 };
 
@@ -2085,14 +2255,9 @@ function escapeHTML(
 }
 
 
+function escapeAttribute(value) {
 
-function escapeAttribute(
-    value
-) {
-
-    return escapeHTML(
-        value
-    );
+    return escapeHTML(value);
 
 }
 
@@ -2121,12 +2286,6 @@ document.addEventListener(
                 "adminApp"
             );
 
-
-        /*
-           IMPORTANT:
-           Never call classList on a
-           missing element.
-        */
 
         if (!token) {
 

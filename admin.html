@@ -22,9 +22,10 @@
 
 <body>
 
-    <!-- =========================
+
+    <!-- =====================================================
          LOGIN
-    ========================== -->
+    ====================================================== -->
 
     <div
         id="loginPage"
@@ -55,6 +56,7 @@
                     type="email"
                     id="email"
                     placeholder="Admin Email"
+                    autocomplete="username"
                     required
                 >
 
@@ -63,6 +65,7 @@
                     type="password"
                     id="password"
                     placeholder="Password"
+                    autocomplete="current-password"
                     required
                 >
 
@@ -88,9 +91,10 @@
     </div>
 
 
-    <!-- =========================
+
+    <!-- =====================================================
          ADMIN APP
-    ========================== -->
+    ====================================================== -->
 
     <div
         id="adminApp"
@@ -99,11 +103,12 @@
     >
 
 
-        <!-- =========================
+        <!-- =================================================
              SIDEBAR
-        ========================== -->
+        ================================================== -->
 
         <aside class="sidebar">
+
 
             <div class="sidebar-brand">
 
@@ -126,7 +131,9 @@
             </div>
 
 
+
             <nav class="sidebar-nav">
+
 
                 <button
                     type="button"
@@ -193,16 +200,19 @@
                     🚪 Logout
                 </button>
 
+
             </nav>
 
         </aside>
 
 
-        <!-- =========================
+
+        <!-- =================================================
              MAIN
-        ========================== -->
+        ================================================== -->
 
         <main class="admin-main">
+
 
             <header class="admin-topbar">
 
@@ -213,9 +223,10 @@
             </header>
 
 
-            <!-- =========================
+
+            <!-- =================================================
                  DASHBOARD
-            ========================== -->
+            ================================================== -->
 
             <section
                 id="dashboard"
@@ -313,6 +324,7 @@
                 </div>
 
 
+
                 <div class="welcome-card">
 
                     <h2>
@@ -328,14 +340,16 @@
             </section>
 
 
-            <!-- =========================
+
+            <!-- =================================================
                  FACULTY
-            ========================== -->
+            ================================================== -->
 
             <section
                 id="faculty"
                 class="admin-section"
             >
+
 
                 <div class="section-header">
 
@@ -344,6 +358,7 @@
                     </h2>
 
                 </div>
+
 
 
                 <div class="admin-form-card">
@@ -380,10 +395,15 @@
                         ></textarea>
 
 
+                        <label class="file-label">
+                            Faculty Photo
+                        </label>
+
+
                         <input
                             type="file"
                             name="photo"
-                            accept=".jpg,.jpeg,.png,.webp"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                         >
 
 
@@ -407,14 +427,16 @@
             </section>
 
 
-            <!-- =========================
+
+            <!-- =================================================
                  TOPPERS
-            ========================== -->
+            ================================================== -->
 
             <section
                 id="toppers"
                 class="admin-section"
             >
+
 
                 <div class="admin-form-card">
 
@@ -449,10 +471,15 @@
                         ></textarea>
 
 
+                        <label class="file-label">
+                            Student Photo
+                        </label>
+
+
                         <input
                             type="file"
                             name="photo"
-                            accept=".jpg,.jpeg,.png,.webp"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                         >
 
 
@@ -476,14 +503,16 @@
             </section>
 
 
-            <!-- =========================
+
+            <!-- =================================================
                  ALUMNI
-            ========================== -->
+            ================================================== -->
 
             <section
                 id="alumni"
                 class="admin-section"
             >
+
 
                 <div class="admin-form-card">
 
@@ -518,10 +547,15 @@
                         ></textarea>
 
 
+                        <label class="file-label">
+                            Alumni Photo
+                        </label>
+
+
                         <input
                             type="file"
                             name="photo"
-                            accept=".jpg,.jpeg,.png,.webp"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                         >
 
 
@@ -545,14 +579,16 @@
             </section>
 
 
-            <!-- =========================
+
+            <!-- =================================================
                  REVIEWS
-            ========================== -->
+            ================================================== -->
 
             <section
                 id="reviews"
                 class="admin-section"
             >
+
 
                 <div class="admin-form-card">
 
@@ -600,30 +636,29 @@
             </section>
 
 
-            <!-- =========================
+
+            <!-- =================================================
                  GALLERY
-            ========================== -->
+            ================================================== -->
 
             <section
                 id="gallery"
                 class="admin-section"
             >
 
+
                 <div class="section-header">
 
-                    <div>
+                    <h2>
+                        Gallery Management
+                    </h2>
 
-                        <h2>
-                            Gallery Management
-                        </h2>
-
-                        <p>
-                            Create events and upload multiple photos.
-                        </p>
-
-                    </div>
+                    <p>
+                        Create events and upload multiple photos.
+                    </p>
 
                 </div>
+
 
 
                 <!-- CREATE EVENT -->
@@ -669,7 +704,7 @@
                         <input
                             type="file"
                             name="cover_photo"
-                            accept=".jpg,.jpeg,.png,.webp"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                         >
 
 
@@ -685,6 +720,7 @@
                 </div>
 
 
+
                 <!-- EVENTS -->
 
                 <div
@@ -692,11 +728,14 @@
                     class="gallery-admin-list"
                 ></div>
 
+
             </section>
+
 
         </main>
 
     </div>
+
 
 
     <!-- JAVASCRIPT -->
