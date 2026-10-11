@@ -1775,3 +1775,316 @@ select {
         padding: 20px;
     }
 }
+
+/* ==========================================
+   FIXED MOBILE RESPONSIVENESS
+   Vishnu PCM Classes Admin
+========================================== */
+
+html,
+body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+}
+
+.admin-app {
+    width: 100%;
+    min-width: 0;
+}
+
+.admin-app .sidebar {
+    box-sizing: border-box;
+}
+
+/* Tablet and mobile navigation */
+@media screen and (max-width: 800px) {
+
+    .admin-app {
+        display: flex !important;
+        flex-direction: column !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .admin-app .sidebar {
+        position: relative !important;
+        inset: auto !important;
+
+        width: 100% !important;
+        max-width: 100% !important;
+        height: auto !important;
+        min-height: 0 !important;
+
+        overflow: visible !important;
+        z-index: 50;
+    }
+
+    .sidebar-brand {
+        padding: 15px 16px !important;
+    }
+
+    .sidebar-nav {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+
+        width: 100% !important;
+        max-width: 100% !important;
+
+        gap: 8px !important;
+        padding: 10px 12px 14px !important;
+
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sidebar-nav .nav-btn {
+        flex: 0 0 auto !important;
+        width: auto !important;
+        min-height: 42px;
+
+        white-space: nowrap !important;
+        padding: 11px 14px !important;
+    }
+
+    .sidebar-nav .website-link {
+        margin-top: 0 !important;
+    }
+
+    .admin-app .admin-main {
+        display: block !important;
+
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+
+        margin: 0 !important;
+        padding: 22px 16px 35px !important;
+    }
+
+    .section-heading {
+        flex-wrap: wrap !important;
+        gap: 12px !important;
+    }
+
+    .section-heading h1 {
+        font-size: 27px !important;
+        overflow-wrap: anywhere;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 12px !important;
+    }
+
+    .stat-card {
+        min-width: 0 !important;
+        padding: 14px !important;
+        gap: 10px !important;
+    }
+
+    .stat-card strong {
+        font-size: 22px !important;
+    }
+
+    .admin-form-card {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 18px !important;
+    }
+
+    .form-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+        gap: 0 !important;
+    }
+
+    .form-grid .full-width,
+    .full-width {
+        grid-column: 1 / -1 !important;
+    }
+
+    .form-group {
+        min-width: 0 !important;
+    }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .admin-item {
+        width: 100% !important;
+        min-width: 0 !important;
+        align-items: stretch !important;
+        flex-direction: column !important;
+        gap: 13px !important;
+    }
+
+    .admin-item-image {
+        width: 100% !important;
+        height: 200px !important;
+        flex: 0 0 auto !important;
+    }
+
+    .admin-item-content {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .admin-item-actions {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: flex-start !important;
+        width: 100% !important;
+        gap: 8px !important;
+    }
+
+    .admin-item-actions button {
+        max-width: 100%;
+    }
+
+    .gallery-admin-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 10px !important;
+    }
+
+    .gallery-admin-header {
+        flex-direction: column !important;
+    }
+
+    .gallery-event-actions {
+        flex-wrap: wrap !important;
+    }
+
+    .gallery-upload-box form {
+        flex-direction: column !important;
+        align-items: stretch !important;
+    }
+
+    .gallery-upload-box input[type="file"] {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .gallery-cover-preview {
+        height: 200px !important;
+    }
+
+    .modal-overlay {
+        padding: 10px !important;
+    }
+
+    .edit-modal {
+        width: 100% !important;
+        max-height: 92dvh !important;
+        overflow-y: auto !important;
+    }
+
+    .modal-header,
+    #editForm {
+        padding: 18px !important;
+    }
+
+    .toast {
+        left: 12px !important;
+        right: 12px !important;
+        bottom: 12px !important;
+        max-width: none !important;
+    }
+}
+
+/* Small phones */
+@media screen and (max-width: 480px) {
+
+    .admin-app .admin-main {
+        padding: 16px 11px 28px !important;
+    }
+
+    .section-heading h1 {
+        font-size: 24px !important;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 9px !important;
+    }
+
+    .stat-card {
+        padding: 11px !important;
+        align-items: flex-start !important;
+        flex-direction: column !important;
+    }
+
+    .stat-icon {
+        width: 38px !important;
+        height: 38px !important;
+        flex-basis: 38px !important;
+    }
+
+    .stat-card strong {
+        font-size: 21px !important;
+    }
+
+    .admin-form-card {
+        padding: 14px !important;
+    }
+
+    .admin-item-image {
+        height: 175px !important;
+    }
+
+    .admin-item-actions {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .admin-item-actions button {
+        width: 100% !important;
+        padding: 10px 8px !important;
+        overflow-wrap: anywhere;
+    }
+
+    .review-admin-title {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .gallery-admin-card {
+        padding: 12px !important;
+    }
+
+    .gallery-admin-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+    }
+
+    .gallery-photo-actions {
+        flex-direction: column !important;
+    }
+
+    .gallery-photo-actions button {
+        width: 100% !important;
+    }
+
+    .modal-actions {
+        flex-direction: column-reverse !important;
+    }
+
+    .modal-actions button {
+        width: 100% !important;
+    }
+}
+
+@media screen and (max-width: 340px) {
+
+    .stats-grid,
+    .gallery-admin-grid {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+}
