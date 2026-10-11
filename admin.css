@@ -2088,3 +2088,24 @@ body {
         grid-template-columns: minmax(0, 1fr) !important;
     }
 }
+
+/* Fix Alumni Photos */
+.admin-item-image {
+    width: 100%;
+    height: 280px;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    background: #f5f7fb;
+    border-radius: 12px;
+}
+
+/* Mobile Responsive Images */
+@media (max-width: 600px) {
+    .admin-item-image {
+        width: 100%;
+        height: 260px;
+        object-fit: contain;
+        object-position: center top;
+    }
+}
