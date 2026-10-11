@@ -1408,3 +1408,370 @@ input[type="file"] {
     }
 
 }
+
+/* =====================================
+   MOBILE RESPONSIVE ADMIN PANEL
+   Vishnu PCM Classes
+===================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+}
+
+body {
+    overflow-x: hidden;
+}
+
+img,
+video {
+    max-width: 100%;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.admin-layout {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+}
+
+.sidebar {
+    flex: 0 0 250px;
+    width: 250px;
+    min-width: 0;
+}
+
+.main-content {
+    flex: 1;
+    min-width: 0;
+    width: calc(100% - 250px);
+    padding: 24px;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.topbar h1 {
+    overflow-wrap: anywhere;
+}
+
+.stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.stat-card,
+.welcome-card,
+.form-card,
+.admin-list > *,
+.admin-list .item-card {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.form-card {
+    width: 100%;
+    max-width: 760px;
+}
+
+.form-card form {
+    width: 100%;
+}
+
+.form-card input,
+.form-card textarea,
+.form-card select,
+.form-card button,
+.login-box input,
+.login-box button {
+    max-width: 100%;
+}
+
+.form-card input,
+.form-card textarea,
+.form-card select {
+    width: 100%;
+}
+
+.admin-list {
+    width: 100%;
+    min-width: 0;
+}
+
+.admin-list img {
+    max-width: 100%;
+    height: auto;
+    object-fit: cover;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+    overflow-wrap: anywhere;
+}
+
+button,
+input,
+textarea,
+select {
+    font: inherit;
+}
+
+.auth-container {
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 20px;
+}
+
+.login-box {
+    width: 100%;
+    max-width: 420px;
+}
+
+/* TABLET */
+
+@media (max-width: 1000px) {
+    .sidebar {
+        flex-basis: 220px;
+        width: 220px;
+    }
+
+    .main-content {
+        width: calc(100% - 220px);
+        padding: 20px;
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* MOBILE */
+
+@media (max-width: 768px) {
+    .admin-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        position: relative;
+        top: auto;
+        left: auto;
+        z-index: 10;
+
+        width: 100%;
+        min-width: 0;
+        flex: 0 0 auto;
+
+        padding: 14px;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .sidebar nav {
+        display: flex;
+        flex-direction: row;
+        align-items: stretch;
+        gap: 8px;
+
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+
+        padding: 4px 0 10px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+    }
+
+    .sidebar nav button,
+    .sidebar nav a {
+        flex: 0 0 auto;
+        width: auto;
+        min-height: 42px;
+        white-space: nowrap;
+        text-decoration: none;
+    }
+
+    .sidebar .logout {
+        display: block;
+        width: 100%;
+        min-height: 42px;
+        margin-top: 8px;
+    }
+
+    .main-content {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 18px 14px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+        gap: 8px;
+        margin-bottom: 20px;
+    }
+
+    .topbar h1 {
+        font-size: clamp(22px, 5vw, 30px);
+        margin: 0;
+    }
+
+    .topbar span {
+        font-size: 13px;
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .stat-card {
+        padding: 16px;
+    }
+
+    .stat-card strong {
+        font-size: 24px;
+    }
+
+    .welcome-card,
+    .form-card {
+        width: 100%;
+        padding: 18px;
+    }
+
+    .form-card form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-card input,
+    .form-card textarea,
+    .form-card select {
+        width: 100%;
+        min-width: 0;
+        min-height: 44px;
+    }
+
+    .form-card textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
+
+    .form-card input[type="file"] {
+        height: auto;
+        padding: 10px;
+    }
+
+    .form-card button {
+        width: 100%;
+        min-height: 44px;
+    }
+
+    .section-heading {
+        font-size: 21px;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-list {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 14px;
+    }
+
+    .admin-list > * {
+        width: 100%;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+
+    .admin-list button {
+        min-height: 40px;
+        max-width: 100%;
+    }
+}
+
+/* SMALL MOBILE */
+
+@media (max-width: 480px) {
+    .sidebar {
+        padding: 12px;
+    }
+
+    .main-content {
+        padding: 14px 10px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .stat-card {
+        padding: 12px 10px;
+    }
+
+    .stat-card p {
+        font-size: 13px;
+        overflow-wrap: anywhere;
+    }
+
+    .stat-card strong {
+        font-size: 22px;
+    }
+
+    .form-card,
+    .welcome-card {
+        padding: 14px;
+    }
+
+    .form-card h2,
+    .welcome-card h2 {
+        font-size: 20px;
+    }
+
+    .sidebar nav button,
+    .sidebar nav a {
+        font-size: 13px;
+        padding: 10px;
+    }
+
+    .auth-container {
+        padding: 14px;
+    }
+
+    .login-box {
+        padding: 20px;
+    }
+}
