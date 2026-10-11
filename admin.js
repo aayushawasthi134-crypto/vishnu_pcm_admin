@@ -1,45 +1,17 @@
-/* =========================================================
-   CONFIG
-========================================================= */
-
 const API_URL =
     "https://vishnu-pcm-admin.onrender.com";
 
 
 /* =========================================================
-   ELEMENTS
-========================================================= */
-
-const loginPage =
-    document.getElementById("loginPage");
-
-const adminApp =
-    document.getElementById("adminApp");
-
-const editModal =
-    document.getElementById("editModal");
-
-const editForm =
-    document.getElementById("editForm");
-
-const editFields =
-    document.getElementById("editFields");
-
-
-/* =========================================================
-   TOKEN
+   AUTH
 ========================================================= */
 
 function getToken() {
-
-    return localStorage.getItem(
-        "adminToken"
-    );
+    return localStorage.getItem("adminToken");
 }
 
 
 function saveToken(token) {
-
     localStorage.setItem(
         "adminToken",
         token
@@ -48,7 +20,6 @@ function saveToken(token) {
 
 
 function clearToken() {
-
     localStorage.removeItem(
         "adminToken"
     );
@@ -56,145 +27,124 @@ function clearToken() {
 
 
 /* =========================================================
-   IMAGE URL
+   CURRENT DATA
 ========================================================= */
 
-function getImageValue(value) {
+let currentData = {
 
-    if (!value) {
-        return "";
-    }
+    faculty: [],
+    toppers: [],
+    alumni: [],
+    testimonials: [],
+    pending_reviews: []
 
-    if (typeof value === "string") {
-        return value.trim();
-    }
-
-    if (
-        typeof value === "object"
-        && value !== null
-    ) {
-
-        return (
-            value.url
-            || value.secure_url
-            || value.photo_url
-            || value.photo
-            || value.image_url
-            || ""
-        );
-    }
-
-    return "";
-}
-
-
-function normalizeImageUrl(url) {
-
-    const value = getImageValue(url);
-
-    if (!value) {
-        return "";
-    }
-
-    if (
-        value.startsWith("http://")
-        || value.startsWith("https://")
-    ) {
-
-        return value;
-    }
-
-    if (value.startsWith("//")) {
-
-        return "https:" + value;
-    }
-
-    if (value.startsWith("/")) {
-
-        return API_URL + value;
-    }
-
-    return value;
-}
+};
 
 
 /* =========================================================
-   HTML ESCAPING
+   HELPERS
 ========================================================= */
 
 function escapeHTML(value) {
 
-    if (
-        value === null
-        || value === undefined
-    ) {
+    return String(value ?? "")
+        .replace(
+            /[&<>"']/g,
+            character => ({
 
-        return "";
-    }
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
 
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+            }[character])
+        );
+
 }
 
 
 function escapeAttribute(value) {
 
-    return escapeHTML(value);
+    return String(value ?? "")
+        .replace(
+            /[&<>"']/g,
+            character => ({
+
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;"
+
+            }[character])
+        );
+
 }
 
 
-/* =========================================================
-   IMAGE HTML
-========================================================= */
+function getImageValue(item) {
 
-function imageHTML(
-    url,
-    alt = "",
-    fallbackText = "V"
-) {
-
-    const imageUrl =
-        normalizeImageUrl(url);
-
-    if (!imageUrl) {
-
-        return `
-            <div class="admin-item-image">
-                <div class="image-fallback">
-                    ${escapeHTML(fallbackText)}
-                </div>
-            </div>
-        `;
+    if (!item) {
+        return "";
     }
 
-    return `
-        <div class="admin-item-image">
+    return (
+        item.photo ||
+        item.photo_url ||
+        ""
+    );
 
-            <img
-                src="${escapeAttribute(imageUrl)}"
-                alt="${escapeAttribute(alt)}"
-                loading="lazy"
-                onerror="
-                    this.style.display='none';
-                    this.parentElement
-                    .querySelector('.image-fallback')
-                    .style.display='grid';
-                "
-            >
+}
 
-            <div
-                class="image-fallback"
-                style="display:none;"
-            >
-                ${escapeHTML(fallbackText)}
+
+function normalizeImageUrl(photo) {
+
+    if (!photo) {
+        return "";
+    }
+
+    if (
+        photo.startsWith("http://") ||
+        photo.startsWith("https://")
+    ) {
+
+        return photo;
+
+    }
+
+    return `${API_URL}${photo}`;
+
+}
+
+
+function imageHTML(
+    photo,
+    alt = ""
+) {
+
+    if (!photo) {
+
+        return `
+            <div class="image-fallback">
+                📷
             </div>
+        `;
 
-        </div>
+    }
+
+
+    return `
+
+        <img
+            src="${escapeAttribute(
+                normalizeImageUrl(photo)
+            )}"
+            alt="${escapeAttribute(alt)}"
+        >
+
     `;
+
 }
 
 
@@ -205,27 +155,47 @@ function imageHTML(
 let toastTimer;
 
 
-function showToast(message) {
+function showToast(
+    message,
+    type = "normal"
+) {
 
     const toast =
-        document.getElementById("toast");
+        document.getElementById(
+            "toast"
+        );
+
+
+    if (!toast) {
+        return;
+    }
+
 
     toast.textContent = message;
 
-    toast.classList.add("show");
+    toast.className =
+        `toast show ${type}`;
 
-    clearTimeout(toastTimer);
 
-    toastTimer = setTimeout(() => {
+    clearTimeout(
+        toastTimer
+    );
 
-        toast.classList.remove("show");
 
-    }, 3000);
+    toastTimer =
+        setTimeout(
+            () => {
+                toast.className =
+                    "toast";
+            },
+            3000
+        );
+
 }
 
 
 /* =========================================================
-   API FETCH
+   API
 ========================================================= */
 
 async function apiFetch(
@@ -236,54 +206,75 @@ async function apiFetch(
     const token =
         getToken();
 
+
     const headers =
         options.headers || {};
 
+
     if (token) {
 
-        headers["Authorization"] =
+        headers[
+            "Authorization"
+        ] =
             `Bearer ${token}`;
+
     }
 
-    options.headers = headers;
+
+    options.headers =
+        headers;
+
 
     const response =
         await fetch(
-            API_URL + endpoint,
+            `${API_URL}${endpoint}`,
             options
         );
 
-    if (response.status === 401) {
+
+    if (
+        response.status === 401
+    ) {
 
         clearToken();
-
         showLogin();
 
         throw new Error(
             "Session expired. Please login again."
         );
+
     }
 
-    let data = {};
+
+    let data = null;
+
 
     try {
 
-        data = await response.json();
+        data =
+            await response.json();
 
-    } catch {
-
-        data = {};
     }
+
+    catch {
+
+        data = null;
+
+    }
+
 
     if (!response.ok) {
 
         throw new Error(
-            data.detail
-            || "Something went wrong"
+            data?.detail ||
+            "Request failed."
         );
+
     }
 
+
     return data;
+
 }
 
 
@@ -295,107 +286,129 @@ async function login(event) {
 
     event.preventDefault();
 
+
     const email =
         document.getElementById(
             "email"
         ).value.trim();
+
 
     const password =
         document.getElementById(
             "password"
         ).value;
 
-    const errorElement =
+
+    const error =
         document.getElementById(
             "loginError"
         );
 
-    errorElement.textContent = "";
 
-    const formData =
-        new FormData();
+    error.textContent = "";
 
-    formData.append(
-        "email",
-        email
-    );
-
-    formData.append(
-        "password",
-        password
-    );
 
     try {
 
-        const data =
+        const formData =
+            new FormData();
+
+
+        formData.append(
+            "email",
+            email
+        );
+
+
+        formData.append(
+            "password",
+            password
+        );
+
+
+        const response =
             await fetch(
-                API_URL + "/api/login",
+                `${API_URL}/api/login`,
                 {
                     method: "POST",
                     body: formData
                 }
             );
 
-        const result =
-            await data.json();
 
-        if (!data.ok) {
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
 
             throw new Error(
-                result.detail
-                || "Login failed"
+                data?.detail ||
+                "Invalid email or password."
             );
+
         }
 
+
         saveToken(
-            result.token
+            data.token
         );
+
 
         showAdmin();
 
+
         await refreshAll();
 
+
         showToast(
-            "Login successful"
+            "Login successful."
         );
 
-    } catch (error) {
+    }
 
-        errorElement.textContent =
-            error.message;
+    catch (err) {
+
+        error.textContent =
+            err.message ||
+            "Login failed.";
 
     }
+
 }
 
 
 /* =========================================================
-   SHOW / HIDE
+   SHOW LOGIN / ADMIN
 ========================================================= */
 
 function showAdmin() {
 
-    loginPage.style.display =
-        "none";
+    document.getElementById(
+        "loginPage"
+    ).style.display = "none";
 
-    adminApp.style.display =
-        "";
+
+    document.getElementById(
+        "adminApp"
+    ).style.display = "flex";
 
 }
 
 
 function showLogin() {
 
-    adminApp.style.display =
-        "none";
+    document.getElementById(
+        "loginPage"
+    ).style.display = "grid";
 
-    loginPage.style.display =
-        "grid";
+
+    document.getElementById(
+        "adminApp"
+    ).style.display = "none";
+
 }
 
-
-/* =========================================================
-   LOGOUT
-========================================================= */
 
 async function logout() {
 
@@ -408,17 +421,19 @@ async function logout() {
             }
         );
 
-    } catch {
+    }
+
+    catch {
+
+        // Logout locally even if server request fails.
 
     }
+
 
     clearToken();
 
     showLogin();
 
-    showToast(
-        "Logged out"
-    );
 }
 
 
@@ -432,14 +447,16 @@ function showSection(
 ) {
 
     document
-        .querySelectorAll(".admin-section")
-        .forEach(section => {
-
-            section.classList.remove(
-                "active-section"
-            );
-
-        });
+        .querySelectorAll(
+            ".admin-section"
+        )
+        .forEach(
+            section => {
+                section.classList.remove(
+                    "active-section"
+                );
+            }
+        );
 
 
     const section =
@@ -447,23 +464,27 @@ function showSection(
             sectionId
         );
 
+
     if (section) {
 
         section.classList.add(
             "active-section"
         );
+
     }
 
 
     document
-        .querySelectorAll(".nav-btn")
-        .forEach(btn => {
-
-            btn.classList.remove(
-                "active"
-            );
-
-        });
+        .querySelectorAll(
+            ".nav-btn"
+        )
+        .forEach(
+            nav => {
+                nav.classList.remove(
+                    "active"
+                );
+            }
+        );
 
 
     if (button) {
@@ -472,42 +493,14 @@ function showSection(
             "active"
         );
 
-    } else {
-
-        const navButton =
-            document.querySelector(
-                `.nav-btn[data-section="${sectionId}"]`
-            );
-
-        if (navButton) {
-
-            navButton.classList.add(
-                "active"
-            );
-        }
     }
 
-
-    window.scrollTo({
-        top: 0,
-        behavior: "smooth"
-    });
 }
 
 
 /* =========================================================
    LOAD ADMIN DATA
 ========================================================= */
-
-let currentData = {
-
-    faculty: [],
-    toppers: [],
-    alumni: [],
-    testimonials: []
-
-};
-
 
 async function loadAdminData() {
 
@@ -516,31 +509,33 @@ async function loadAdminData() {
             "/api/admin/data"
         );
 
-    currentData = {
 
-        faculty:
-            Array.isArray(data.faculty)
-                ? data.faculty
-                : [],
+    currentData =
+        data || {};
 
-        toppers:
-            Array.isArray(data.toppers)
-                ? data.toppers
-                : [],
 
-        alumni:
-            Array.isArray(data.alumni)
-                ? data.alumni
-                : [],
+    currentData.faculty =
+        currentData.faculty || [];
 
-        testimonials:
-            Array.isArray(data.testimonials)
-                ? data.testimonials
-                : []
 
-    };
+    currentData.toppers =
+        currentData.toppers || [];
+
+
+    currentData.alumni =
+        currentData.alumni || [];
+
+
+    currentData.testimonials =
+        currentData.testimonials || [];
+
+
+    currentData.pending_reviews =
+        currentData.pending_reviews || [];
+
 
     renderAdminData();
+
 }
 
 
@@ -548,1051 +543,178 @@ async function loadAdminData() {
    RENDER ALL DATA
 ========================================================= */
 
+
 function renderAdminData() {
+    renderFaculty(currentData.faculty);
+    renderToppers(currentData.toppers);
+    renderAlumni(currentData.alumni);
 
-    renderFaculty();
+    const approvedReviews = currentData.testimonials.filter(
+        review => review.status === "approved"
+    );
 
-    renderToppers();
+    renderReviews(
+        approvedReviews,
+        currentData.pending_reviews
+    );
 
-    renderAlumni();
-
-    renderReviews();
-
-
-    document.getElementById(
-        "facultyCount"
-    ).textContent =
+    document.getElementById("facultyCount").textContent =
         currentData.faculty.length;
 
-
-    document.getElementById(
-        "topCount"
-    ).textContent =
+    document.getElementById("topCount").textContent =
         currentData.toppers.length;
 
-
-    document.getElementById(
-        "alumniCount"
-    ).textContent =
+    document.getElementById("alumniCount").textContent =
         currentData.alumni.length;
 
+    document.getElementById("reviewCount").textContent =
+        approvedReviews.length;
 
-    document.getElementById(
-        "reviewCount"
-    ).textContent =
-        currentData.testimonials.length;
+    document.getElementById("pendingReviewCount").textContent =
+        currentData.pending_reviews.length;
 }
+
 
 
 /* =========================================================
    FACULTY
 ========================================================= */
 
-function renderFaculty() {
+function renderFaculty(
+    faculty
+) {
 
     const container =
         document.getElementById(
             "facultyList"
         );
 
-    if (!currentData.faculty.length) {
 
-        container.innerHTML =
-            emptyState(
-                "No faculty added",
-                "Add your first faculty member above."
-            );
-
+    if (!container) {
         return;
     }
 
 
+    if (!faculty.length) {
+
+        container.innerHTML =
+            emptyState(
+                "No faculty added yet."
+            );
+
+        return;
+
+    }
+
+
     container.innerHTML =
-        currentData.faculty
-            .map(faculty => {
+        faculty.map(
+            item => `
 
-                const photo =
-                    getImageValue(
-                        faculty.photo
-                    );
+            <div class="admin-item">
 
-                const initial =
-                    faculty.name
-                        ? faculty.name
-                            .charAt(0)
-                            .toUpperCase()
-                        : "F";
+                <div class="admin-item-image">
+                    ${imageHTML(
+                        getImageValue(item),
+                        item.name
+                    )}
+                </div>
 
-                return `
-                    <div class="admin-item">
 
-                        ${imageHTML(
-                            photo,
-                            faculty.name,
-                            initial
+                <div class="admin-item-content">
+
+                    <h3>
+                        ${escapeHTML(
+                            item.name
                         )}
+                    </h3>
 
-                        <div class="admin-item-content">
+                    <span class="subject">
+                        ${escapeHTML(
+                            item.subject
+                        )}
+                    </span>
 
-                            <h3>
-                                ${escapeHTML(
-                                    faculty.name
-                                )}
-                            </h3>
+                    <p>
+                        ${escapeHTML(
+                            item.description
+                        )}
+                    </p>
 
-                            <div class="subject">
-                                ${escapeHTML(
-                                    faculty.subject
-                                )}
-                            </div>
+                </div>
 
-                            <p>
-                                ${escapeHTML(
-                                    faculty.description
-                                )}
-                            </p>
 
-                        </div>
+                <div class="admin-item-actions">
 
-                        <div class="admin-item-actions">
+                    <button
+                        class="edit-btn"
+                        onclick="openFacultyEdit(${item.id})"
+                    >
+                        Edit
+                    </button>
 
-                            <button
-                                type="button"
-                                class="edit-btn"
-                                onclick="openFacultyEdit(${faculty.id})"
-                            >
-                                Edit
-                            </button>
+                    <button
+                        class="delete-btn"
+                        onclick="deleteFaculty(${item.id})"
+                    >
+                        Delete
+                    </button>
 
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                onclick="deleteFaculty(${faculty.id})"
-                            >
-                                Delete
-                            </button>
+                </div>
 
-                        </div>
+            </div>
 
-                    </div>
-                `;
+        `
+        ).join("");
 
-            })
-            .join("");
 }
 
-
-/* =========================================================
-   ADD FACULTY
-========================================================= */
 
 async function addFaculty(event) {
 
     event.preventDefault();
 
+
     const form =
         event.target;
 
-    const formData =
-        new FormData(form);
 
     try {
+
+        const data =
+            new FormData(form);
+
 
         await apiFetch(
             "/api/admin/faculty",
             {
                 method: "POST",
-                body: formData
+                body: data
             }
         );
+
 
         form.reset();
 
         await loadAdminData();
 
         showToast(
-            "Faculty added successfully"
+            "Faculty added successfully."
         );
-
-    } catch (error) {
-
-        alert(error.message);
 
     }
-}
 
-
-/* =========================================================
-   EDIT FACULTY MODAL
-========================================================= */
-
-function openFacultyEdit(id) {
-
-    const faculty =
-        currentData.faculty.find(
-            item => Number(item.id) === Number(id)
-        );
-
-    if (!faculty) return;
-
-    document.getElementById(
-        "editType"
-    ).value = "faculty";
-
-    document.getElementById(
-        "editId"
-    ).value = faculty.id;
-
-    document.getElementById(
-        "editModalTitle"
-    ).textContent =
-        "Edit Faculty";
-
-
-    editFields.innerHTML = `
-
-        <div class="form-group">
-
-            <label>Name</label>
-
-            <input
-                type="text"
-                id="editName"
-                name="name"
-                value="${escapeAttribute(
-                    faculty.name
-                )}"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label>Subject</label>
-
-            <input
-                type="text"
-                id="editSubject"
-                name="subject"
-                value="${escapeAttribute(
-                    faculty.subject
-                )}"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>Description</label>
-
-            <textarea
-                id="editDescription"
-                name="description"
-                rows="5"
-            >${escapeHTML(
-                faculty.description || ""
-            )}</textarea>
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>Current Photo</label>
-
-            ${
-                normalizeImageUrl(
-                    faculty.photo
-                )
-                ? `
-                    <div class="current-edit-image">
-
-                        <img
-                            src="${escapeAttribute(
-                                normalizeImageUrl(
-                                    faculty.photo
-                                )
-                            )}"
-                            alt=""
-                        >
-
-                    </div>
-                `
-                : `
-                    <div class="no-photo-text">
-                        No photo uploaded.
-                    </div>
-                `
-            }
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>
-                Replace Photo
-            </label>
-
-            <input
-                type="file"
-                id="editPhoto"
-                name="photo"
-                accept=".jpg,.jpeg,.png,.webp"
-            >
-
-            <small>
-                Leave empty to keep the current photo.
-            </small>
-
-        </div>
-
-    `;
-
-    openEditModal();
-}
-
-
-/* =========================================================
-   TOPPERS
-========================================================= */
-
-function renderToppers() {
-
-    const container =
-        document.getElementById(
-            "topperList"
-        );
-
-    if (!currentData.toppers.length) {
-
-        container.innerHTML =
-            emptyState(
-                "No toppers added",
-                "Add topper profiles above."
-            );
-
-        return;
-    }
-
-
-    container.innerHTML =
-        currentData.toppers
-            .map(person => {
-
-                const initial =
-                    person.name
-                        ? person.name
-                            .charAt(0)
-                            .toUpperCase()
-                        : "T";
-
-                return `
-                    <div class="admin-item">
-
-                        ${imageHTML(
-                            person.photo,
-                            person.name,
-                            initial
-                        )}
-
-                        <div class="admin-item-content">
-
-                            <h3>
-                                ${escapeHTML(
-                                    person.name
-                                )}
-                            </h3>
-
-                            <small>
-                                ${escapeHTML(
-                                    person.details
-                                )}
-                            </small>
-
-                            <p>
-                                ${escapeHTML(
-                                    person.review
-                                )}
-                            </p>
-
-                        </div>
-
-                        <div class="admin-item-actions">
-
-                            <button
-                                type="button"
-                                class="edit-btn"
-                                onclick="openPersonEdit('topper', ${person.id})"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                onclick="deleteTopper(${person.id})"
-                            >
-                                Delete
-                            </button>
-
-                        </div>
-
-                    </div>
-                `;
-
-            })
-            .join("");
-}
-
-
-/* =========================================================
-   ADD TOPPER
-========================================================= */
-
-async function addTopper(event) {
-
-    event.preventDefault();
-
-    const form =
-        event.target;
-
-    const formData =
-        new FormData(form);
-
-    try {
-
-        await apiFetch(
-            "/api/admin/people",
-            {
-                method: "POST",
-                body: formData
-            }
-        );
-
-        form.reset();
-
-        await loadAdminData();
+    catch (error) {
 
         showToast(
-            "Topper added successfully"
+            error.message,
+            "error"
         );
-
-    } catch (error) {
-
-        alert(error.message);
 
     }
+
 }
 
-
-/* =========================================================
-   EDIT TOPPER / ALUMNI
-========================================================= */
-
-function openPersonEdit(
-    type,
-    id
-) {
-
-    const list =
-        type === "topper"
-            ? currentData.toppers
-            : currentData.alumni;
-
-    const person =
-        list.find(
-            item => Number(item.id) === Number(id)
-        );
-
-    if (!person) return;
-
-
-    document.getElementById(
-        "editType"
-    ).value = type;
-
-    document.getElementById(
-        "editId"
-    ).value = person.id;
-
-    document.getElementById(
-        "editModalTitle"
-    ).textContent =
-        type === "topper"
-            ? "Edit Topper"
-            : "Edit Alumni";
-
-
-    editFields.innerHTML = `
-
-        <div class="form-group">
-
-            <label>Name</label>
-
-            <input
-                type="text"
-                name="name"
-                value="${escapeAttribute(
-                    person.name
-                )}"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label>Details</label>
-
-            <input
-                type="text"
-                name="details"
-                value="${escapeAttribute(
-                    person.details || ""
-                )}"
-            >
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>Review / Message</label>
-
-            <textarea
-                name="review"
-                rows="5"
-            >${escapeHTML(
-                person.review || ""
-            )}</textarea>
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>Current Photo</label>
-
-            ${
-                normalizeImageUrl(
-                    person.photo
-                )
-                ? `
-                    <div class="current-edit-image">
-
-                        <img
-                            src="${escapeAttribute(
-                                normalizeImageUrl(
-                                    person.photo
-                                )
-                            )}"
-                            alt=""
-                        >
-
-                    </div>
-                `
-                : `
-                    <div class="no-photo-text">
-                        No photo uploaded.
-                    </div>
-                `
-            }
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>
-                Replace Photo
-            </label>
-
-            <input
-                type="file"
-                name="photo"
-                accept=".jpg,.jpeg,.png,.webp"
-            >
-
-            <small>
-                Leave empty to keep the current photo.
-            </small>
-
-        </div>
-
-    `;
-
-    openEditModal();
-}
-
-
-/* =========================================================
-   ALUMNI
-========================================================= */
-
-function renderAlumni() {
-
-    const container =
-        document.getElementById(
-            "alumniList"
-        );
-
-    if (!currentData.alumni.length) {
-
-        container.innerHTML =
-            emptyState(
-                "No alumni added",
-                "Add alumni profiles above."
-            );
-
-        return;
-    }
-
-
-    container.innerHTML =
-        currentData.alumni
-            .map(person => {
-
-                const initial =
-                    person.name
-                        ? person.name
-                            .charAt(0)
-                            .toUpperCase()
-                        : "A";
-
-                return `
-                    <div class="admin-item">
-
-                        ${imageHTML(
-                            person.photo,
-                            person.name,
-                            initial
-                        )}
-
-                        <div class="admin-item-content">
-
-                            <h3>
-                                ${escapeHTML(
-                                    person.name
-                                )}
-                            </h3>
-
-                            <small>
-                                ${escapeHTML(
-                                    person.details
-                                )}
-                            </small>
-
-                            <p>
-                                ${escapeHTML(
-                                    person.review
-                                )}
-                            </p>
-
-                        </div>
-
-                        <div class="admin-item-actions">
-
-                            <button
-                                type="button"
-                                class="edit-btn"
-                                onclick="openPersonEdit('alumni', ${person.id})"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                onclick="deleteAlumni(${person.id})"
-                            >
-                                Delete
-                            </button>
-
-                        </div>
-
-                    </div>
-                `;
-
-            })
-            .join("");
-}
-
-
-/* =========================================================
-   ADD ALUMNI
-========================================================= */
-
-async function addAlumni(event) {
-
-    event.preventDefault();
-
-    const form =
-        event.target;
-
-    const formData =
-        new FormData(form);
-
-    try {
-
-        await apiFetch(
-            "/api/admin/people",
-            {
-                method: "POST",
-                body: formData
-            }
-        );
-
-        form.reset();
-
-        await loadAdminData();
-
-        showToast(
-            "Alumni added successfully"
-        );
-
-    } catch (error) {
-
-        alert(error.message);
-
-    }
-}
-
-
-/* =========================================================
-   REVIEWS
-========================================================= */
-
-function renderReviews() {
-
-    const container =
-        document.getElementById(
-            "reviewList"
-        );
-
-    if (!currentData.testimonials.length) {
-
-        container.innerHTML =
-            emptyState(
-                "No reviews added",
-                "Add your first review above."
-            );
-
-        return;
-    }
-
-
-    container.innerHTML =
-        currentData.testimonials
-            .map(review => {
-
-                const initial =
-                    review.name
-                        ? review.name
-                            .charAt(0)
-                            .toUpperCase()
-                        : "R";
-
-                return `
-                    <div class="admin-item">
-
-                        <div class="admin-item-image">
-
-                            <div class="image-fallback">
-                                ${escapeHTML(
-                                    initial
-                                )}
-                            </div>
-
-                        </div>
-
-                        <div class="admin-item-content">
-
-                            <h3>
-                                ${escapeHTML(
-                                    review.name
-                                )}
-                            </h3>
-
-                            <p>
-                                ${escapeHTML(
-                                    review.review
-                                )}
-                            </p>
-
-                        </div>
-
-                        <div class="admin-item-actions">
-
-                            <button
-                                type="button"
-                                class="edit-btn"
-                                onclick="openReviewEdit(${review.id})"
-                            >
-                                Edit
-                            </button>
-
-                            <button
-                                type="button"
-                                class="delete-btn"
-                                onclick="deleteReview(${review.id})"
-                            >
-                                Delete
-                            </button>
-
-                        </div>
-
-                    </div>
-                `;
-
-            })
-            .join("");
-}
-
-
-/* =========================================================
-   ADD REVIEW
-========================================================= */
-
-async function addReview(event) {
-
-    event.preventDefault();
-
-    const form =
-        event.target;
-
-    const formData =
-        new FormData(form);
-
-    try {
-
-        await apiFetch(
-            "/api/admin/testimonials",
-            {
-                method: "POST",
-                body: formData
-            }
-        );
-
-        form.reset();
-
-        await loadAdminData();
-
-        showToast(
-            "Review added successfully"
-        );
-
-    } catch (error) {
-
-        alert(error.message);
-
-    }
-}
-
-
-/* =========================================================
-   EDIT REVIEW
-========================================================= */
-
-function openReviewEdit(id) {
-
-    const review =
-        currentData.testimonials.find(
-            item => Number(item.id) === Number(id)
-        );
-
-    if (!review) return;
-
-
-    document.getElementById(
-        "editType"
-    ).value = "review";
-
-    document.getElementById(
-        "editId"
-    ).value = review.id;
-
-    document.getElementById(
-        "editModalTitle"
-    ).textContent =
-        "Edit Review";
-
-
-    editFields.innerHTML = `
-
-        <div class="form-group full-width">
-
-            <label>Name</label>
-
-            <input
-                type="text"
-                name="name"
-                value="${escapeAttribute(
-                    review.name
-                )}"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>Review</label>
-
-            <textarea
-                name="review"
-                rows="6"
-                required
-            >${escapeHTML(
-                review.review || ""
-            )}</textarea>
-
-        </div>
-
-    `;
-
-    openEditModal();
-}
-
-
-/* =========================================================
-   SUBMIT EDIT
-========================================================= */
-
-async function submitEdit(event) {
-
-    event.preventDefault();
-
-    const type =
-        document.getElementById(
-            "editType"
-        ).value;
-
-    const id =
-        document.getElementById(
-            "editId"
-        ).value;
-
-
-    const formData =
-        new FormData(
-            editForm
-        );
-
-
-    let endpoint = "";
-
-
-    if (type === "faculty") {
-
-        endpoint =
-            `/api/admin/faculty/${id}`;
-
-    } else if (
-        type === "topper"
-        || type === "alumni"
-    ) {
-
-        formData.append(
-            "type",
-            type
-        );
-
-        endpoint =
-            `/api/admin/people/${id}`;
-
-    } else if (type === "review") {
-
-        endpoint =
-            `/api/admin/testimonials/${id}`;
-
-    } else if (type === "gallery") {
-
-        endpoint =
-            `/api/admin/gallery/event/${id}`;
-    }
-
-
-    try {
-
-        await apiFetch(
-            endpoint,
-            {
-                method: "PUT",
-                body: formData
-            }
-        );
-
-        closeEditModal();
-
-        await refreshAll();
-
-        showToast(
-            "Changes saved successfully"
-        );
-
-    } catch (error) {
-
-        alert(error.message);
-
-    }
-}
-
-
-/* =========================================================
-   MODAL
-========================================================= */
-
-function openEditModal() {
-
-    editModal.classList.add(
-        "show"
-    );
-
-    document.body.style.overflow =
-        "hidden";
-}
-
-
-function closeEditModal() {
-
-    editModal.classList.remove(
-        "show"
-    );
-
-    document.body.style.overflow =
-        "";
-
-    editForm.reset();
-
-    editFields.innerHTML =
-        "";
-}
-
-
-function closeEditModalOnOverlay(
-    event
-) {
-
-    if (
-        event.target === editModal
-    ) {
-
-        closeEditModal();
-
-    }
-}
-
-
-/* =========================================================
-   DELETE FUNCTIONS
-========================================================= */
 
 async function deleteFaculty(id) {
 
@@ -1601,9 +723,9 @@ async function deleteFaculty(id) {
             "Delete this faculty member?"
         )
     ) {
-
         return;
     }
+
 
     try {
 
@@ -1614,98 +736,774 @@ async function deleteFaculty(id) {
             }
         );
 
+
         await loadAdminData();
 
         showToast(
-            "Faculty deleted"
+            "Faculty deleted."
         );
 
-    } catch (error) {
+    }
 
-        alert(error.message);
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
 
     }
+
 }
 
 
-async function deleteTopper(id) {
+function openFacultyEdit(id) {
+
+    const item =
+        currentData.faculty.find(
+            x => Number(x.id) === Number(id)
+        );
+
+
+    if (!item) {
+        return;
+    }
+
+
+    openEditModal(
+        "faculty",
+        item
+    );
+
+}
+
+
+/* =========================================================
+   TOPPERS
+========================================================= */
+
+function renderToppers(
+    toppers
+) {
+
+    const container =
+        document.getElementById(
+            "topperList"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!toppers.length) {
+
+        container.innerHTML =
+            emptyState(
+                "No toppers added yet."
+            );
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        toppers.map(
+            item => `
+
+            <div class="admin-item">
+
+                <div class="admin-item-image">
+                    ${imageHTML(
+                        getImageValue(item),
+                        item.name
+                    )}
+                </div>
+
+
+                <div class="admin-item-content">
+
+                    <h3>
+                        ${escapeHTML(
+                            item.name
+                        )}
+                    </h3>
+
+                    <span class="subject">
+                        TOPPER
+                    </span>
+
+                    <p>
+                        ${escapeHTML(
+                            item.details
+                        )}
+                    </p>
+
+                    ${
+                        item.review
+                        ?
+
+                        `<p>
+                            “${escapeHTML(
+                                item.review
+                            )}”
+                        </p>`
+
+                        :
+
+                        ""
+                    }
+
+                </div>
+
+
+                <div class="admin-item-actions">
+
+                    <button
+                        class="edit-btn"
+                        onclick="openPersonEdit('topper', ${item.id})"
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        class="delete-btn"
+                        onclick="deletePerson('topper', ${item.id})"
+                    >
+                        Delete
+                    </button>
+
+                </div>
+
+            </div>
+
+        `
+        ).join("");
+
+}
+
+
+async function addTopper(event) {
+
+    event.preventDefault();
+
+
+    try {
+
+        const data =
+            new FormData(
+                event.target
+            );
+
+
+        await apiFetch(
+            "/api/admin/people",
+            {
+                method: "POST",
+                body: data
+            }
+        );
+
+
+        event.target.reset();
+
+
+        await loadAdminData();
+
+
+        showToast(
+            "Topper added successfully."
+        );
+
+    }
+
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+/* =========================================================
+   ALUMNI
+========================================================= */
+
+function renderAlumni(
+    alumni
+) {
+
+    const container =
+        document.getElementById(
+            "alumniList"
+        );
+
+
+    if (!container) {
+        return;
+    }
+
+
+    if (!alumni.length) {
+
+        container.innerHTML =
+            emptyState(
+                "No alumni added yet."
+            );
+
+        return;
+
+    }
+
+
+    container.innerHTML =
+        alumni.map(
+            item => `
+
+            <div class="admin-item">
+
+                <div class="admin-item-image">
+                    ${imageHTML(
+                        getImageValue(item),
+                        item.name
+                    )}
+                </div>
+
+
+                <div class="admin-item-content">
+
+                    <h3>
+                        ${escapeHTML(
+                            item.name
+                        )}
+                    </h3>
+
+                    <span class="subject">
+                        ALUMNI
+                    </span>
+
+                    <p>
+                        ${escapeHTML(
+                            item.details
+                        )}
+                    </p>
+
+                    ${
+                        item.review
+                        ?
+
+                        `<p>
+                            “${escapeHTML(
+                                item.review
+                            )}”
+                        </p>`
+
+                        :
+
+                        ""
+                    }
+
+                </div>
+
+
+                <div class="admin-item-actions">
+
+                    <button
+                        class="edit-btn"
+                        onclick="openPersonEdit('alumni', ${item.id})"
+                    >
+                        Edit
+                    </button>
+
+                    <button
+                        class="delete-btn"
+                        onclick="deletePerson('alumni', ${item.id})"
+                    >
+                        Delete
+                    </button>
+
+                </div>
+
+            </div>
+
+        `
+        ).join("");
+
+}
+
+
+async function addAlumni(event) {
+
+    event.preventDefault();
+
+
+    try {
+
+        const data =
+            new FormData(
+                event.target
+            );
+
+
+        await apiFetch(
+            "/api/admin/people",
+            {
+                method: "POST",
+                body: data
+            }
+        );
+
+
+        event.target.reset();
+
+
+        await loadAdminData();
+
+
+        showToast(
+            "Alumni added successfully."
+        );
+
+    }
+
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+function openPersonEdit(
+    type,
+    id
+) {
+
+    const source =
+        type === "topper"
+            ? currentData.toppers
+            : currentData.alumni;
+
+
+    const item =
+        source.find(
+            x => Number(x.id) === Number(id)
+        );
+
+
+    if (!item) {
+        return;
+    }
+
+
+    openEditModal(
+        type,
+        item
+    );
+
+}
+
+
+async function deletePerson(
+    type,
+    id
+) {
 
     if (
         !confirm(
-            "Delete this topper?"
+            `Delete this ${type}?`
         )
     ) {
-
         return;
     }
+
 
     try {
 
         await apiFetch(
-            `/api/admin/topper/${id}`,
+            `/api/admin/${type}/${id}`,
             {
                 method: "DELETE"
             }
         );
 
+
         await loadAdminData();
 
+
         showToast(
-            "Topper deleted"
+            `${type} deleted.`
         );
 
-    } catch (error) {
+    }
 
-        alert(error.message);
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
 
     }
+
 }
 
 
-async function deleteAlumni(id) {
+/* =========================================================
+   REVIEWS
+========================================================= */
+
+function renderReviews(
+    approved,
+    pending
+) {
+
+    const pendingContainer =
+        document.getElementById(
+            "pendingReviewList"
+        );
+
+
+    const approvedContainer =
+        document.getElementById(
+            "reviewList"
+        );
+
+
+    const badge =
+        document.getElementById(
+            "pendingReviewBadge"
+        );
+
+
+    if (badge) {
+
+        badge.textContent =
+            `${pending.length} Pending`;
+
+    }
+
+
+    if (pendingContainer) {
+
+        if (!pending.length) {
+
+            pendingContainer.innerHTML =
+                emptyState(
+                    "No pending reviews. All caught up!"
+                );
+
+        }
+
+        else {
+
+            pendingContainer.innerHTML =
+                pending.map(
+                    review => `
+
+                    <div class="admin-item pending-review-item">
+
+                        <div class="review-status-icon">
+                            ⏳
+                        </div>
+
+
+                        <div class="admin-item-content">
+
+                            <div class="review-meta">
+
+                                <span class="status-badge pending">
+                                    PENDING
+                                </span>
+
+                            </div>
+
+
+                            <h3>
+                                ${escapeHTML(
+                                    review.name
+                                )}
+                            </h3>
+
+
+                            <p class="review-text">
+                                “${escapeHTML(
+                                    review.review
+                                )}”
+                            </p>
+
+
+                            <small>
+                                Submitted for approval
+                            </small>
+
+                        </div>
+
+
+                        <div class="admin-item-actions">
+
+                            <button
+                                class="approve-btn"
+                                onclick="approveReview(${review.id})"
+                            >
+                                ✓ Approve
+                            </button>
+
+
+                            <button
+                                class="delete-btn"
+                                onclick="rejectReview(${review.id})"
+                            >
+                                ✕ Reject
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                `
+                ).join("");
+
+        }
+
+    }
+
+
+    if (approvedContainer) {
+
+        if (!approved.length) {
+
+            approvedContainer.innerHTML =
+                emptyState(
+                    "No approved reviews yet."
+                );
+
+        }
+
+        else {
+
+            approvedContainer.innerHTML =
+                approved.map(
+                    review => `
+
+                    <div class="admin-item">
+
+                        <div class="review-status-icon approved-icon">
+                            ✓
+                        </div>
+
+
+                        <div class="admin-item-content">
+
+                            <div class="review-meta">
+
+                                <span class="status-badge approved">
+                                    APPROVED
+                                </span>
+
+                            </div>
+
+
+                            <h3>
+                                ${escapeHTML(
+                                    review.name
+                                )}
+                            </h3>
+
+
+                            <p class="review-text">
+                                “${escapeHTML(
+                                    review.review
+                                )}”
+                            </p>
+
+                        </div>
+
+
+                        <div class="admin-item-actions">
+
+                            <button
+                                class="edit-btn"
+                                onclick="openReviewEdit(${review.id})"
+                            >
+                                Edit
+                            </button>
+
+
+                            <button
+                                class="delete-btn"
+                                onclick="deleteReview(${review.id})"
+                            >
+                                Delete
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                `
+                ).join("");
+
+        }
+
+    }
+
+}
+
+
+async function addReview(event) {
+
+    event.preventDefault();
+
+
+    try {
+
+        const data =
+            new FormData(
+                event.target
+            );
+
+
+        await apiFetch(
+            "/api/admin/testimonials",
+            {
+                method: "POST",
+                body: data
+            }
+        );
+
+
+        event.target.reset();
+
+
+        await loadAdminData();
+
+
+        showToast(
+            "Review added and approved."
+        );
+
+    }
+
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+function openReviewEdit(id) {
+
+    const item =
+        currentData.testimonials.find(
+            x => Number(x.id) === Number(id)
+        );
+
+
+    if (!item) {
+        return;
+    }
+
+
+    openEditModal(
+        "review",
+        item
+    );
+
+}
+
+
+async function approveReview(id) {
 
     if (
         !confirm(
-            "Delete this alumni?"
+            "Approve this review and show it on the website?"
         )
     ) {
-
         return;
     }
+
 
     try {
 
         await apiFetch(
-            `/api/admin/alumni/${id}`,
+            `/api/admin/review/${id}/approve`,
             {
-                method: "DELETE"
+                method: "PUT"
+            }
+        );
+
+
+        await loadAdminData();
+
+
+        showToast(
+            "Review approved. It is now visible on the website."
+        );
+
+    }
+
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
+
+    }
+
+}
+
+
+async function rejectReview(id) {
+    if (!confirm("Are you sure you want to reject this review?")) {
+        return;
+    }
+
+    try {
+        await apiFetch(
+            `/api/admin/review/${id}/reject`,
+            {
+                method: "PUT"
             }
         );
 
         await loadAdminData();
 
-        showToast(
-            "Alumni deleted"
-        );
+        showToast("Review rejected successfully.");
 
     } catch (error) {
-
-        alert(error.message);
-
+        showToast(error.message, "error");
     }
 }
+
 
 
 async function deleteReview(id) {
 
     if (
         !confirm(
-            "Delete this review?"
+            "Delete this approved review?"
         )
     ) {
-
         return;
     }
+
 
     try {
 
@@ -1716,17 +1514,372 @@ async function deleteReview(id) {
             }
         );
 
+
         await loadAdminData();
 
+
         showToast(
-            "Review deleted"
+            "Review deleted."
         );
 
-    } catch (error) {
+    }
 
-        alert(error.message);
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
 
     }
+
+}
+
+
+/* =========================================================
+   EDIT MODAL
+========================================================= */
+
+function openEditModal(
+    type,
+    item
+) {
+
+    const modal =
+        document.getElementById(
+            "editModal"
+        );
+
+
+    const fields =
+        document.getElementById(
+            "editFields"
+        );
+
+
+    document.getElementById(
+        "editType"
+    ).value =
+        type;
+
+
+    document.getElementById(
+        "editId"
+    ).value =
+        item.id;
+
+
+    let html = "";
+
+
+    if (type === "faculty") {
+
+        html = `
+
+            <div class="form-group">
+
+                <label>
+                    Name
+                </label>
+
+                <input
+                    name="name"
+                    value="${escapeAttribute(
+                        item.name
+                    )}"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Subject
+                </label>
+
+                <input
+                    name="subject"
+                    value="${escapeAttribute(
+                        item.subject
+                    )}"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group full-width">
+
+                <label>
+                    Description
+                </label>
+
+                <textarea
+                    name="description"
+                    required
+                >${escapeHTML(
+                    item.description
+                )}</textarea>
+
+            </div>
+
+
+            <div class="form-group full-width">
+
+                <label>
+                    Replace Photo
+                </label>
+
+                <input
+                    type="file"
+                    name="photo"
+                    accept="image/*"
+                >
+
+            </div>
+
+        `;
+
+    }
+
+
+    else if (
+        type === "topper" ||
+        type === "alumni"
+    ) {
+
+        html = `
+
+            <div class="form-group">
+
+                <label>
+                    Name
+                </label>
+
+                <input
+                    name="name"
+                    value="${escapeAttribute(
+                        item.name
+                    )}"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Details
+                </label>
+
+                <input
+                    name="details"
+                    value="${escapeAttribute(
+                        item.details
+                    )}"
+                >
+
+            </div>
+
+
+            <div class="form-group full-width">
+
+                <label>
+                    Review / Message
+                </label>
+
+                <textarea
+                    name="review"
+                >${escapeHTML(
+                    item.review
+                )}</textarea>
+
+            </div>
+
+
+            <div class="form-group full-width">
+
+                <label>
+                    Replace Photo
+                </label>
+
+                <input
+                    type="file"
+                    name="photo"
+                    accept="image/*"
+                >
+
+            </div>
+
+        `;
+
+    }
+
+
+    else if (type === "review") {
+
+        html = `
+
+            <div class="form-group">
+
+                <label>
+                    Name
+                </label>
+
+                <input
+                    name="name"
+                    value="${escapeAttribute(
+                        item.name
+                    )}"
+                    required
+                >
+
+            </div>
+
+
+            <div class="form-group full-width">
+
+                <label>
+                    Review
+                </label>
+
+                <textarea
+                    name="review"
+                    required
+                >${escapeHTML(
+                    item.review
+                )}</textarea>
+
+            </div>
+
+        `;
+
+    }
+
+
+    fields.innerHTML =
+        html;
+
+
+    modal.classList.add(
+        "show"
+    );
+
+}
+
+
+function closeEditModal() {
+
+    const modal =
+        document.getElementById(
+            "editModal"
+        );
+
+
+    modal.classList.remove(
+        "show"
+    );
+
+}
+
+
+async function submitEdit(event) {
+
+    event.preventDefault();
+
+
+    const type =
+        document.getElementById(
+            "editType"
+        ).value;
+
+
+    const id =
+        document.getElementById(
+            "editId"
+        ).value;
+
+
+    const data =
+        new FormData(
+            event.target
+        );
+
+
+    let endpoint;
+
+
+    if (type === "faculty") {
+
+        endpoint =
+            `/api/admin/faculty/${id}`;
+
+    }
+
+    else if (
+        type === "topper" ||
+        type === "alumni"
+    ) {
+
+        endpoint =
+            `/api/admin/people/${id}`;
+
+    }
+
+    else if (type === "review") {
+
+        endpoint =
+            `/api/admin/testimonials/${id}`;
+
+    }
+
+    else {
+
+        showToast(
+            "Invalid edit type.",
+            "error"
+        );
+
+        return;
+
+    }
+
+
+    try {
+
+        await apiFetch(
+            endpoint,
+            {
+                method: "PUT",
+                body: data
+            }
+        );
+
+
+        closeEditModal();
+
+
+        await loadAdminData();
+
+
+        showToast(
+            "Changes saved successfully."
+        );
+
+    }
+
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
+
+    }
+
 }
 
 
@@ -1734,53 +1887,37 @@ async function deleteReview(id) {
    GALLERY
 ========================================================= */
 
-let galleryData = [];
-
-
 async function loadAdminGallery() {
 
-    const data =
-        await apiFetch(
-            "/api/admin/gallery"
+    try {
+
+        const data =
+            await apiFetch(
+                "/api/admin/gallery"
+            );
+
+
+        renderAdminGallery(
+            data || []
         );
-
-    if (Array.isArray(data)) {
-
-        galleryData = data;
-
-    } else if (
-        Array.isArray(data.gallery)
-    ) {
-
-        galleryData = data.gallery;
-
-    } else if (
-        Array.isArray(data.events)
-    ) {
-
-        galleryData = data.events;
-
-    } else {
-
-        galleryData = [];
 
     }
 
-    renderAdminGallery();
+    catch (error) {
 
+        console.error(
+            "Gallery loading error:",
+            error
+        );
 
-    document.getElementById(
-        "galleryCount"
-    ).textContent =
-        galleryData.length;
+    }
+
 }
 
 
-/* =========================================================
-   RENDER GALLERY
-========================================================= */
-
-function renderAdminGallery() {
+function renderAdminGallery(
+    events
+) {
 
     const container =
         document.getElementById(
@@ -1788,253 +1925,235 @@ function renderAdminGallery() {
         );
 
 
-    if (!galleryData.length) {
-
-        container.innerHTML =
-            emptyState(
-                "No gallery events",
-                "Create your first gallery event above."
-            );
-
+    if (!container) {
         return;
     }
 
 
+    document.getElementById(
+        "galleryCount"
+    ).textContent =
+        events.length;
+
+
+    if (!events.length) {
+
+        container.innerHTML =
+            emptyState(
+                "No gallery events yet."
+            );
+
+        return;
+
+    }
+
+
     container.innerHTML =
-        galleryData
-            .map(event => {
-
-                const cover =
-                    getImageValue(
-                        event.cover_photo
-                    );
-
+        events.map(
+            event => {
 
                 const photos =
-                    Array.isArray(event.photos)
-                        ? event.photos
-                        : [];
+                    event.photos || [];
 
 
-                const photosHTML =
-                    photos.length
-                        ? photos
-                            .map(photo => {
-
-                                const photoURL =
-                                    getImageValue(
-                                        photo.photo_url
-                                        || photo.url
-                                        || photo.photo
-                                        || photo.image_url
-                                    );
-
-                                return `
-                                    <div class="gallery-photo-item">
-
-                                        <div class="gallery-photo-image">
-
-                                            ${
-                                                photoURL
-                                                ? `
-                                                    <img
-                                                        src="${escapeAttribute(
-                                                            normalizeImageUrl(
-                                                                photoURL
-                                                            )
-                                                        )}"
-                                                        alt=""
-                                                        loading="lazy"
-                                                        onerror="
-                                                            this.style.display='none';
-                                                            this.parentElement
-                                                            .querySelector('.image-fallback')
-                                                            .style.display='grid';
-                                                        "
-                                                    >
-                                                `
-                                                : ""
-                                            }
-
-                                            <div
-                                                class="image-fallback"
-                                                style="${
-                                                    photoURL
-                                                        ? "display:none;"
-                                                        : "display:grid;"
-                                                }"
-                                            >
-                                                🖼️
-                                            </div>
-
-                                        </div>
-
-
-                                        <div class="gallery-photo-actions">
-
-                                            <button
-                                                type="button"
-                                                class="cover-btn"
-                                                onclick="setGalleryCover(${event.id}, ${photo.id})"
-                                            >
-                                                Cover
-                                            </button>
-
-                                            <button
-                                                type="button"
-                                                class="delete-btn"
-                                                onclick="deleteGalleryPhoto(${photo.id})"
-                                            >
-                                                Delete
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-                                `;
-
-                            })
-                            .join("")
-                        : `
-                            <div class="empty-state">
-                                <strong>
-                                    No photos yet
-                                </strong>
-                                Upload photos for this event above.
-                            </div>
-                        `;
+                const cover =
+                    event.cover_photo ||
+                    photos[0]?.photo_url ||
+                    "";
 
 
                 return `
-                    <div class="gallery-admin-card">
 
-                        <div class="gallery-admin-header">
+                <div class="gallery-admin-card">
 
-                            <div>
+                    <div class="gallery-admin-header">
 
-                                <h2>
+                        <div>
+
+                            <h2>
+                                ${escapeHTML(
+                                    event.title
+                                )}
+                            </h2>
+
+                            <p>
+                                ${escapeHTML(
+                                    event.description || ""
+                                )}
+                            </p>
+
+                            ${
+                                event.event_date
+                                ?
+
+                                `<small>
                                     ${escapeHTML(
-                                        event.title
+                                        String(
+                                            event.event_date
+                                        )
                                     )}
-                                </h2>
+                                </small>`
 
-                                <p>
-                                    ${escapeHTML(
-                                        event.description
-                                    )}
-                                </p>
+                                :
 
-                                ${
-                                    event.event_date
-                                    ? `
-                                        <small>
-                                            ${escapeHTML(
-                                                event.event_date
-                                            )}
-                                        </small>
-                                    `
-                                    : ""
-                                }
-
-                            </div>
-
-
-                            <div class="gallery-event-actions">
-
-                                <button
-                                    type="button"
-                                    class="edit-btn"
-                                    onclick="openGalleryEdit(${event.id})"
-                                >
-                                    Edit Event
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="delete-btn"
-                                    onclick="deleteGalleryEvent(${event.id})"
-                                >
-                                    Delete Event
-                                </button>
-
-                            </div>
+                                ""
+                            }
 
                         </div>
 
 
-                        ${
-                            cover
-                            ? `
-                                <div class="gallery-cover-preview">
+                        <div class="gallery-event-actions">
 
-                                    <img
-                                        src="${escapeAttribute(
-                                            normalizeImageUrl(
-                                                cover
-                                            )
-                                        )}"
-                                        alt="Gallery cover"
-                                        loading="lazy"
-                                    >
-
-                                    <span class="cover-label">
-                                        Current Cover
-                                    </span>
-
-                                </div>
-                            `
-                            : `
-                                <div class="empty-state">
-                                    No cover photo selected.
-                                </div>
-                            `
-                        }
-
-
-                        <div class="gallery-upload-box">
-
-                            <form
-                                onsubmit="uploadGalleryPhotos(event, ${event.id})"
-                                enctype="multipart/form-data"
+                            <button
+                                class="edit-btn"
+                                onclick="openGalleryEdit(${event.id})"
                             >
-
-                                <input
-                                    type="file"
-                                    name="photos"
-                                    accept=".jpg,.jpeg,.png,.webp"
-                                    multiple
-                                    required
-                                >
-
-                                <button
-                                    type="submit"
-                                    class="primary-btn"
-                                >
-                                    Upload Photos
-                                </button>
-
-                            </form>
-
-                        </div>
+                                Edit
+                            </button>
 
 
-                        <div class="gallery-admin-grid">
-
-                            ${photosHTML}
+                            <button
+                                class="delete-btn"
+                                onclick="deleteGalleryEvent(${event.id})"
+                            >
+                                Delete Event
+                            </button>
 
                         </div>
 
                     </div>
-                `;
 
-            })
-            .join("");
+
+                    ${
+                        cover
+
+                        ?
+
+                        `
+
+                        <div class="gallery-cover-preview">
+
+                            <img
+                                src="${escapeAttribute(
+                                    normalizeImageUrl(
+                                        cover
+                                    )
+                                )}"
+                                alt="${escapeAttribute(
+                                    event.title
+                                )}"
+                            >
+
+                            <span class="cover-label">
+                                COVER PHOTO
+                            </span>
+
+                        </div>
+
+                        `
+
+                        :
+
+                        ""
+                    }
+
+
+                    <div class="gallery-upload-box">
+
+                        <form
+                            onsubmit="uploadGalleryPhotos(event, ${event.id})"
+                        >
+
+                            <input
+                                type="file"
+                                name="photos"
+                                accept="image/*"
+                                multiple
+                                required
+                            >
+
+                            <button
+                                type="submit"
+                                class="primary-btn"
+                            >
+                                Upload Photos
+                            </button>
+
+                        </form>
+
+                    </div>
+
+
+                    <div class="gallery-admin-grid">
+
+                        ${
+                            photos.length
+
+                            ?
+
+                            photos.map(
+                                photo => `
+
+                                <div class="gallery-photo-item">
+
+                                    <div class="gallery-photo-image">
+
+                                        <img
+                                            src="${escapeAttribute(
+                                                normalizeImageUrl(
+                                                    photo.photo_url
+                                                )
+                                            )}"
+                                            alt="Gallery"
+                                        >
+
+                                    </div>
+
+
+                                    <div class="gallery-photo-actions">
+
+                                        <button
+                                            class="cover-btn"
+                                            onclick="setGalleryCover(${event.id}, ${photo.id})"
+                                        >
+                                            Set Cover
+                                        </button>
+
+
+                                        <button
+                                            class="delete-btn"
+                                            onclick="deleteGalleryPhoto(${photo.id})"
+                                        >
+                                            Delete
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                            `
+                            ).join("")
+
+                            :
+
+                            `
+                            <div class="empty-state">
+                                No photos uploaded.
+                            </div>
+                            `
+                        }
+
+                    </div>
+
+                </div>
+
+            `;
+
+            }
+        ).join("");
+
 }
 
-
-/* =========================================================
-   CREATE GALLERY EVENT
-========================================================= */
 
 async function createGalleryEvent(
     event
@@ -2042,180 +2161,128 @@ async function createGalleryEvent(
 
     event.preventDefault();
 
-    const form =
-        event.target;
-
-    const formData =
-        new FormData(form);
 
     try {
+
+        const data =
+            new FormData(
+                event.target
+            );
+
 
         await apiFetch(
             "/api/admin/gallery/event",
             {
                 method: "POST",
-                body: formData
+                body: data
             }
         );
 
-        form.reset();
+
+        event.target.reset();
+
 
         await loadAdminGallery();
 
+
         showToast(
-            "Gallery event created"
+            "Gallery event created."
         );
-
-    } catch (error) {
-
-        alert(error.message);
 
     }
-}
 
+    catch (error) {
 
-/* =========================================================
-   EDIT GALLERY EVENT
-========================================================= */
-
-function openGalleryEdit(id) {
-
-    const event =
-        galleryData.find(
-            item => Number(item.id) === Number(id)
+        showToast(
+            error.message,
+            "error"
         );
 
-    if (!event) return;
+    }
 
-
-    document.getElementById(
-        "editType"
-    ).value = "gallery";
-
-    document.getElementById(
-        "editId"
-    ).value = event.id;
-
-    document.getElementById(
-        "editModalTitle"
-    ).textContent =
-        "Edit Gallery Event";
-
-
-    editFields.innerHTML = `
-
-        <div class="form-group">
-
-            <label>
-                Event Title
-            </label>
-
-            <input
-                type="text"
-                name="title"
-                value="${escapeAttribute(
-                    event.title
-                )}"
-                required
-            >
-
-        </div>
-
-
-        <div class="form-group">
-
-            <label>
-                Event Date
-            </label>
-
-            <input
-                type="date"
-                name="event_date"
-                value="${escapeAttribute(
-                    event.event_date || ""
-                )}"
-            >
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>
-                Description
-            </label>
-
-            <textarea
-                name="description"
-                rows="5"
-            >${escapeHTML(
-                event.description || ""
-            )}</textarea>
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>
-                Current Cover
-            </label>
-
-            ${
-                normalizeImageUrl(
-                    event.cover_photo
-                )
-                ? `
-                    <div class="current-edit-image">
-
-                        <img
-                            src="${escapeAttribute(
-                                normalizeImageUrl(
-                                    event.cover_photo
-                                )
-                            )}"
-                            alt=""
-                        >
-
-                    </div>
-                `
-                : `
-                    <div class="no-photo-text">
-                        No cover photo.
-                    </div>
-                `
-            }
-
-        </div>
-
-
-        <div class="form-group full-width">
-
-            <label>
-                Replace Cover Photo
-            </label>
-
-            <input
-                type="file"
-                name="cover_photo"
-                accept=".jpg,.jpeg,.png,.webp"
-            >
-
-            <small>
-                Leave empty to keep the current cover.
-            </small>
-
-        </div>
-
-    `;
-
-    openEditModal();
 }
 
 
-/* =========================================================
-   UPLOAD GALLERY PHOTOS
-========================================================= */
+function openGalleryEdit(
+    id
+) {
+
+    const title =
+        prompt(
+            "Enter new event title:"
+        );
+
+
+    if (title === null) {
+        return;
+    }
+
+
+    const description =
+        prompt(
+            "Enter new description:"
+        );
+
+
+    const eventDate =
+        prompt(
+            "Enter event date (YYYY-MM-DD):"
+        );
+
+
+    const formData =
+        new FormData();
+
+
+    formData.append(
+        "title",
+        title.trim()
+    );
+
+
+    formData.append(
+        "description",
+        description || ""
+    );
+
+
+    formData.append(
+        "event_date",
+        eventDate || ""
+    );
+
+
+    apiFetch(
+        `/api/admin/gallery/event/${id}`,
+        {
+            method: "PUT",
+            body: formData
+        }
+    )
+        .then(
+            async () => {
+
+                await loadAdminGallery();
+
+                showToast(
+                    "Gallery event updated."
+                );
+
+            }
+        )
+        .catch(
+            error => {
+
+                showToast(
+                    error.message,
+                    "error"
+                );
+
+            }
+        );
+
+}
+
 
 async function uploadGalleryPhotos(
     event,
@@ -2224,42 +2291,47 @@ async function uploadGalleryPhotos(
 
     event.preventDefault();
 
-    const form =
-        event.target;
-
-    const formData =
-        new FormData(form);
 
     try {
 
-        const result =
-            await apiFetch(
-                `/api/admin/gallery/${eventId}/photos`,
-                {
-                    method: "POST",
-                    body: formData
-                }
+        const data =
+            new FormData(
+                event.target
             );
 
-        form.reset();
+
+        await apiFetch(
+            `/api/admin/gallery/${eventId}/photos`,
+            {
+                method: "POST",
+                body: data
+            }
+        );
+
+
+        event.target.reset();
+
 
         await loadAdminGallery();
 
+
         showToast(
-            `${result.count || 0} photo(s) uploaded`
+            "Photos uploaded."
         );
 
-    } catch (error) {
+    }
 
-        alert(error.message);
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
 
     }
+
 }
 
-
-/* =========================================================
-   SET GALLERY COVER
-========================================================= */
 
 async function setGalleryCover(
     eventId,
@@ -2275,23 +2347,27 @@ async function setGalleryCover(
             }
         );
 
+
         await loadAdminGallery();
 
+
         showToast(
-            "Cover photo updated"
+            "Cover photo updated."
         );
 
-    } catch (error) {
+    }
 
-        alert(error.message);
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
 
     }
+
 }
 
-
-/* =========================================================
-   DELETE GALLERY PHOTO
-========================================================= */
 
 async function deleteGalleryPhoto(
     photoId
@@ -2299,12 +2375,12 @@ async function deleteGalleryPhoto(
 
     if (
         !confirm(
-            "Delete this gallery photo?"
+            "Delete this photo?"
         )
     ) {
-
         return;
     }
+
 
     try {
 
@@ -2315,23 +2391,27 @@ async function deleteGalleryPhoto(
             }
         );
 
+
         await loadAdminGallery();
 
+
         showToast(
-            "Photo deleted"
+            "Photo deleted."
         );
 
-    } catch (error) {
+    }
 
-        alert(error.message);
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
 
     }
+
 }
 
-
-/* =========================================================
-   DELETE GALLERY EVENT
-========================================================= */
 
 async function deleteGalleryEvent(
     eventId
@@ -2339,12 +2419,12 @@ async function deleteGalleryEvent(
 
     if (
         !confirm(
-            "Delete this event and all its photos?"
+            "Delete this gallery event and all its photos?"
         )
     ) {
-
         return;
     }
+
 
     try {
 
@@ -2355,17 +2435,25 @@ async function deleteGalleryEvent(
             }
         );
 
+
         await loadAdminGallery();
 
+
         showToast(
-            "Gallery event deleted"
+            "Gallery event deleted."
         );
 
-    } catch (error) {
+    }
 
-        alert(error.message);
+    catch (error) {
+
+        showToast(
+            error.message,
+            "error"
+        );
 
     }
+
 }
 
 
@@ -2374,21 +2462,27 @@ async function deleteGalleryEvent(
 ========================================================= */
 
 function emptyState(
-    title,
     message
 ) {
 
     return `
+
         <div class="empty-state">
 
             <strong>
-                ${escapeHTML(title)}
+                Nothing here yet
             </strong>
 
-            ${escapeHTML(message)}
+            <span>
+                ${escapeHTML(
+                    message
+                )}
+            </span>
 
         </div>
+
     `;
+
 }
 
 
@@ -2398,31 +2492,16 @@ function emptyState(
 
 async function refreshAll() {
 
-    try {
+    await Promise.all([
+        loadAdminData(),
+        loadAdminGallery()
+    ]);
 
-        await Promise.all([
-            loadAdminData(),
-            loadAdminGallery()
-        ]);
-
-    } catch (error) {
-
-        console.error(error);
-
-        if (
-            getToken()
-        ) {
-
-            showToast(
-                error.message
-            );
-        }
-    }
 }
 
 
 /* =========================================================
-   ESC KEY FOR MODAL
+   MODAL ESC
 ========================================================= */
 
 document.addEventListener(
@@ -2431,7 +2510,6 @@ document.addEventListener(
 
         if (
             event.key === "Escape"
-            && editModal.classList.contains("show")
         ) {
 
             closeEditModal();
@@ -2443,12 +2521,12 @@ document.addEventListener(
 
 
 /* =========================================================
-   INITIAL LOAD
+   START
 ========================================================= */
 
 document.addEventListener(
     "DOMContentLoaded",
-    async () => {
+    async function () {
 
         if (getToken()) {
 
@@ -2458,7 +2536,13 @@ document.addEventListener(
 
                 await refreshAll();
 
-            } catch {
+            }
+
+            catch (error) {
+
+                console.error(
+                    error
+                );
 
                 clearToken();
 
@@ -2466,7 +2550,9 @@ document.addEventListener(
 
             }
 
-        } else {
+        }
+
+        else {
 
             showLogin();
 

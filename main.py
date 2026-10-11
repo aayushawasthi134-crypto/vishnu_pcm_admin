@@ -1,11 +1,12 @@
-import cloudinary
-import cloudinary.uploader
-
-from pathlib import Path
 import os
 import sqlite3
 import secrets
 import re
+from pathlib import Path
+from datetime import datetime
+
+import cloudinary
+import cloudinary.uploader
 
 from fastapi import (
     FastAPI,
@@ -16,14 +17,20 @@ from fastapi import (
     HTTPException,
     Depends
 )
-
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 
 # =========================================================
-# BASIC CONFIG
+# APP
+# =========================================================
+
+app = FastAPI(title="Vishnu PCM Classes Admin")
+
+
+# =========================================================
+# PATHS
 # =========================================================
 
 BASE = Path(__file__).resolve().parent
@@ -39,6 +46,7 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 # =========================================================
 
 DATABASE_URL = os.getenv("DATABASE_URL")
+
 USE_POSTGRES = bool(DATABASE_URL)
 
 if USE_POSTGRES:
@@ -81,20 +89,246 @@ def db_execute(connection, query, params=()):
 
 def rows_as_dict(rows):
 
-    return [
-        dict(row)
-        for row in rows
-    ]
+    return [dict(row) for row in rows]
 
 
-def get_returned_id(cursor):
+# =========================================================
+# DATABASE INITIALIZATION
+# =========================================================
 
-    row = cursor.fetchone()
+def init_db():
 
-    if isinstance(row, dict):
-        return row["id"]
+    conn = get_db()
 
-    return row[0]
+    try:
+
+        if USE_POSTGRES:
+
+            # ---------------------------------------------
+            # PEOPLE
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS people (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    type VARCHAR(50) NOT NULL,
+                    name VARCHAR(255) NOT NULL,
+                    details TEXT,
+                    review TEXT,
+                    photo TEXT
+                )
+            """)
+
+            # ---------------------------------------------
+            # TESTIMONIALS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS testimonials (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    review TEXT NOT NULL,
+                    status VARCHAR(20) DEFAULT 'approved'
+                )
+            """)
+
+            # ---------------------------------------------
+            # FACULTY
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS faculty (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    subject VARCHAR(255),
+                    description TEXT,
+                    photo TEXT
+                )
+            """)
+
+            # ---------------------------------------------
+            # GALLERY EVENTS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS gallery_events (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    title VARCHAR(255) NOT NULL,
+                    description TEXT,
+                    event_date VARCHAR(100),
+                    cover_photo TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ---------------------------------------------
+            # GALLERY PHOTOS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS gallery_photos (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    event_id INTEGER NOT NULL,
+                    photo_url TEXT NOT NULL,
+                    public_id TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ---------------------------------------------
+            # AUTH TOKENS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS active_tokens (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    token TEXT UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ---------------------------------------------
+            # MIGRATION
+            # ---------------------------------------------
+
+            conn.execute("""
+                ALTER TABLE testimonials
+                ADD COLUMN IF NOT EXISTS status VARCHAR(20)
+                DEFAULT 'approved'
+            """)
+
+            conn.execute("""
+                UPDATE testimonials
+                SET status = 'approved'
+                WHERE status IS NULL
+            """)
+
+        else:
+
+            # ---------------------------------------------
+            # PEOPLE
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS people (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    type TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    details TEXT,
+                    review TEXT,
+                    photo TEXT
+                )
+            """)
+
+            # ---------------------------------------------
+            # TESTIMONIALS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS testimonials (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    review TEXT NOT NULL,
+                    status TEXT DEFAULT 'approved'
+                )
+            """)
+
+            # ---------------------------------------------
+            # FACULTY
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS faculty (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    subject TEXT,
+                    description TEXT,
+                    photo TEXT
+                )
+            """)
+
+            # ---------------------------------------------
+            # GALLERY EVENTS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS gallery_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    event_date TEXT,
+                    cover_photo TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ---------------------------------------------
+            # GALLERY PHOTOS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS gallery_photos (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    event_id INTEGER NOT NULL,
+                    photo_url TEXT NOT NULL,
+                    public_id TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ---------------------------------------------
+            # AUTH TOKENS
+            # ---------------------------------------------
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS active_tokens (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    token TEXT UNIQUE NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+            # ---------------------------------------------
+            # SQLITE MIGRATION
+            # ---------------------------------------------
+
+            columns = conn.execute(
+                "PRAGMA table_info(testimonials)"
+            ).fetchall()
+
+            column_names = [
+                column["name"]
+                for column in columns
+            ]
+
+            if "status" not in column_names:
+
+                conn.execute("""
+                    ALTER TABLE testimonials
+                    ADD COLUMN status TEXT DEFAULT 'approved'
+                """)
+
+            conn.execute("""
+                UPDATE testimonials
+                SET status = 'approved'
+                WHERE status IS NULL
+            """)
+
+        conn.commit()
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# STARTUP
+# =========================================================
+
+@app.on_event("startup")
+def startup():
+
+    init_db()
 
 
 # =========================================================
@@ -128,10 +362,83 @@ if (
     )
 
 
-def upload_image_to_cloudinary(
-    photo,
-    folder
+# =========================================================
+# CORS
+# =========================================================
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://vishnupcmwebsite.vercel.app",
+        "http://localhost:5500",
+        "http://127.0.0.1:5500"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+
+# =========================================================
+# STATIC FILES
+# =========================================================
+
+app.mount(
+    "/static",
+    StaticFiles(directory=str(BASE / "static")),
+    name="static"
+)
+
+
+# =========================================================
+# ADMIN TOKEN
+# =========================================================
+
+active_tokens = set()
+
+
+def get_token_from_request(request: Request):
+
+    auth = request.headers.get("Authorization")
+
+    if not auth:
+        return None
+
+    if not auth.startswith("Bearer "):
+        return None
+
+    return auth.replace(
+        "Bearer ",
+        "",
+        1
+    ).strip()
+
+
+def check_auth(request: Request):
+
+    token = get_token_from_request(request)
+
+    if not token or token not in active_tokens:
+
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized"
+        )
+
+    return True
+
+
+# =========================================================
+# IMAGE HELPERS
+# =========================================================
+
+async def upload_image_to_cloudinary(
+    photo: UploadFile,
+    folder="vishnu-pcm"
 ):
+
+    if not photo or not photo.filename:
+        return None
 
     if not (
         CLOUDINARY_CLOUD_NAME
@@ -139,33 +446,42 @@ def upload_image_to_cloudinary(
         and CLOUDINARY_API_SECRET
     ):
 
-        raise HTTPException(
-            status_code=500,
-            detail="Cloudinary is not configured"
+        filename = (
+            secrets.token_hex(8)
+            + "_"
+            + re.sub(
+                r"[^a-zA-Z0-9._-]",
+                "_",
+                photo.filename
+            )
         )
 
-    try:
+        filepath = UPLOAD_DIR / filename
 
-        result = cloudinary.uploader.upload(
-            photo.file,
-            folder=folder,
-            resource_type="image"
-        )
+        content = await photo.read()
 
-        return result["secure_url"]
+        with open(filepath, "wb") as f:
+            f.write(content)
 
-    except Exception as error:
+        return "/static/uploads/" + filename
 
-        raise HTTPException(
-            status_code=500,
-            detail=f"Cloudinary upload failed: {str(error)}"
-        )
+    content = await photo.read()
+
+    result = cloudinary.uploader.upload(
+        content,
+        folder=folder
+    )
+
+    return result.get("secure_url")
 
 
-def upload_gallery_image_to_cloudinary(
-    photo,
-    folder
+async def upload_gallery_image_to_cloudinary(
+    photo: UploadFile,
+    folder="vishnu-pcm/gallery"
 ):
+
+    if not photo or not photo.filename:
+        return None, None
 
     if not (
         CLOUDINARY_CLOUD_NAME
@@ -173,35 +489,51 @@ def upload_gallery_image_to_cloudinary(
         and CLOUDINARY_API_SECRET
     ):
 
-        raise HTTPException(
-            status_code=500,
-            detail="Cloudinary is not configured"
+        filename = (
+            secrets.token_hex(8)
+            + "_"
+            + re.sub(
+                r"[^a-zA-Z0-9._-]",
+                "_",
+                photo.filename
+            )
         )
 
-    try:
+        filepath = UPLOAD_DIR / filename
 
-        result = cloudinary.uploader.upload(
-            photo.file,
-            folder=folder,
-            resource_type="image"
-        )
+        content = await photo.read()
+
+        with open(filepath, "wb") as f:
+            f.write(content)
 
         return (
-            result["secure_url"],
-            result.get("public_id", "")
+            "/static/uploads/" + filename,
+            None
         )
 
-    except Exception as error:
+    content = await photo.read()
 
-        raise HTTPException(
-            status_code=500,
-            detail=f"Cloudinary upload failed: {str(error)}"
-        )
+    result = cloudinary.uploader.upload(
+        content,
+        folder=folder
+    )
+
+    return (
+        result.get("secure_url"),
+        result.get("public_id")
+    )
 
 
 def delete_cloudinary_image(public_id):
 
     if not public_id:
+        return
+
+    if not (
+        CLOUDINARY_CLOUD_NAME
+        and CLOUDINARY_API_KEY
+        and CLOUDINARY_API_SECRET
+    ):
         return
 
     try:
@@ -217,245 +549,32 @@ def delete_cloudinary_image(public_id):
 
 
 # =========================================================
-# IMAGE VALIDATION
-# =========================================================
-
-ALLOWED_EXTENSIONS = [
-    ".jpg",
-    ".jpeg",
-    ".png",
-    ".webp"
-]
-
-
-def validate_image(photo):
-
-    if not photo or not photo.filename:
-        return
-
-    extension = Path(
-        photo.filename
-    ).suffix.lower()
-
-    if extension not in ALLOWED_EXTENSIONS:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Only JPG, JPEG, PNG and WEBP images are allowed"
-        )
-
-
-# =========================================================
-# DATABASE INITIALIZATION
-# =========================================================
-
-def init_database():
-
-    connection = get_db()
-
-    if USE_POSTGRES:
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS people (
-                id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-                type VARCHAR(50) NOT NULL,
-                name VARCHAR(200) NOT NULL,
-                details TEXT DEFAULT '',
-                review TEXT DEFAULT '',
-                photo TEXT DEFAULT ''
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS testimonials (
-                id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-                name VARCHAR(200) NOT NULL,
-                review TEXT DEFAULT ''
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS faculty (
-                id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-                name VARCHAR(200) NOT NULL,
-                subject VARCHAR(200) NOT NULL,
-                description TEXT DEFAULT '',
-                photo TEXT DEFAULT ''
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS gallery_events (
-                id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-                title VARCHAR(200) NOT NULL,
-                description TEXT DEFAULT '',
-                event_date VARCHAR(50) DEFAULT '',
-                cover_photo TEXT DEFAULT '',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS gallery_photos (
-                id INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY,
-                event_id INTEGER NOT NULL
-                    REFERENCES gallery_events(id)
-                    ON DELETE CASCADE,
-                photo_url TEXT NOT NULL,
-                public_id TEXT DEFAULT '',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-
-    else:
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS people (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                type TEXT NOT NULL,
-                name TEXT NOT NULL,
-                details TEXT DEFAULT '',
-                review TEXT DEFAULT '',
-                photo TEXT DEFAULT ''
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS testimonials (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                review TEXT DEFAULT ''
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS faculty (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                subject TEXT NOT NULL,
-                description TEXT DEFAULT '',
-                photo TEXT DEFAULT ''
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS gallery_events (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                title TEXT NOT NULL,
-                description TEXT DEFAULT '',
-                event_date TEXT DEFAULT '',
-                cover_photo TEXT DEFAULT '',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-
-        db_execute(
-            connection,
-            """
-            CREATE TABLE IF NOT EXISTS gallery_photos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                event_id INTEGER NOT NULL,
-                photo_url TEXT NOT NULL,
-                public_id TEXT DEFAULT '',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-            """
-        )
-
-    connection.commit()
-    connection.close()
-
-
-init_database()
-
-
-# =========================================================
-# APP
-# =========================================================
-
-app = FastAPI(
-    title="Vishnu PCM Classes Admin API"
-)
-
-
-# =========================================================
-# CORS
-# =========================================================
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
-        "https://vishnupcmwebsite.vercel.app",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500"
-    ],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"]
-)
-
-
-# =========================================================
-# AUTH
-# =========================================================
-
-ADMIN_EMAIL = os.getenv(
-    "ADMIN_EMAIL",
-    "admin@gmail.com"
-)
-
-ADMIN_PASSWORD = os.getenv(
-    "ADMIN_PASSWORD",
-    "Admin@12345"
-)
-
-active_tokens = set()
-
-
-# =========================================================
-# FILE ROUTES
+# BASIC PAGES
 # =========================================================
 
 @app.get("/", response_class=HTMLResponse)
 async def root():
 
-    return FileResponse(
-        BASE / "admin.html"
+    file = BASE / "admin.html"
+
+    if file.exists():
+        return FileResponse(file)
+
+    return HTMLResponse(
+        "<h1>Admin panel</h1>"
     )
 
 
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page():
 
-    return FileResponse(
-        BASE / "admin.html"
+    file = BASE / "admin.html"
+
+    if file.exists():
+        return FileResponse(file)
+
+    return HTMLResponse(
+        "<h1>Admin panel</h1>"
     )
 
 
@@ -463,7 +582,8 @@ async def admin_page():
 async def admin_css():
 
     return FileResponse(
-        BASE / "admin.css"
+        BASE / "admin.css",
+        media_type="text/css"
     )
 
 
@@ -471,51 +591,27 @@ async def admin_css():
 async def admin_js():
 
     return FileResponse(
-        BASE / "admin.js"
+        BASE / "admin.js",
+        media_type="application/javascript"
     )
 
 
 @app.get("/assets/style.css")
-async def style_css():
+async def public_css():
 
-    file_path = BASE / "style.css"
-
-    if file_path.exists():
-
-        return FileResponse(
-            file_path
-        )
-
-    raise HTTPException(
-        status_code=404,
-        detail="style.css not found"
+    return FileResponse(
+        BASE / "style.css",
+        media_type="text/css"
     )
 
 
 @app.get("/assets/script.js")
-async def script_js():
+async def public_js():
 
-    file_path = BASE / "script.js"
-
-    if file_path.exists():
-
-        return FileResponse(
-            file_path
-        )
-
-    raise HTTPException(
-        status_code=404,
-        detail="script.js not found"
+    return FileResponse(
+        BASE / "script.js",
+        media_type="application/javascript"
     )
-
-
-app.mount(
-    "/static",
-    StaticFiles(
-        directory=UPLOAD_DIR.parent
-    ),
-    name="static"
-)
 
 
 # =========================================================
@@ -528,9 +624,19 @@ async def login(
     password: str = Form(...)
 ):
 
+    admin_email = os.getenv(
+        "ADMIN_EMAIL",
+        "admin@gmail.com"
+    )
+
+    admin_password = os.getenv(
+        "ADMIN_PASSWORD",
+        "Admin@12345"
+    )
+
     if (
-        email != ADMIN_EMAIL
-        or password != ADMIN_PASSWORD
+        email.strip().lower() != admin_email.lower()
+        or password != admin_password
     ):
 
         raise HTTPException(
@@ -541,6 +647,29 @@ async def login(
     token = secrets.token_urlsafe(32)
 
     active_tokens.add(token)
+
+    conn = get_db()
+
+    try:
+
+        db_execute(
+            conn,
+            """
+            INSERT INTO active_tokens(token)
+            VALUES (?)
+            """,
+            (token,)
+        )
+
+        conn.commit()
+
+    except Exception:
+
+        pass
+
+    finally:
+
+        conn.close()
 
     return {
         "success": True,
@@ -557,20 +686,30 @@ async def logout(
     request: Request
 ):
 
-    authorization = request.headers.get(
-        "Authorization",
-        ""
-    )
+    token = get_token_from_request(request)
 
-    if authorization.startswith("Bearer "):
-
-        token = authorization.replace(
-            "Bearer ",
-            "",
-            1
-        ).strip()
+    if token:
 
         active_tokens.discard(token)
+
+        conn = get_db()
+
+        try:
+
+            db_execute(
+                conn,
+                """
+                DELETE FROM active_tokens
+                WHERE token = ?
+                """,
+                (token,)
+            )
+
+            conn.commit()
+
+        finally:
+
+            conn.close()
 
     return {
         "success": True
@@ -578,119 +717,141 @@ async def logout(
 
 
 # =========================================================
-# AUTH CHECK
+# PUBLIC WEBSITE DATA
 # =========================================================
-
-async def check_auth(
-    request: Request
-):
-
-    authorization = request.headers.get(
-        "Authorization",
-        ""
-    )
-
-    if not authorization.startswith("Bearer "):
-
-        raise HTTPException(
-            status_code=401,
-            detail="Unauthorized"
-        )
-
-    token = authorization.replace(
-        "Bearer ",
-        "",
-        1
-    ).strip()
-
-    if token not in active_tokens:
-
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid or expired token"
-        )
-
-    return True
-
-
-# =========================================================
-# PUBLIC DATA
-# =========================================================
-
-async def public_data():
-
-    connection = get_db()
-
-    toppers_cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM people
-        WHERE type = ?
-        ORDER BY id DESC
-        """,
-        ("topper",)
-    )
-
-    alumni_cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM people
-        WHERE type = ?
-        ORDER BY id DESC
-        """,
-        ("alumni",)
-    )
-
-    testimonials_cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM testimonials
-        ORDER BY id DESC
-        """
-    )
-
-    faculty_cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM faculty
-        ORDER BY id DESC
-        """
-    )
-
-    toppers = rows_as_dict(
-        toppers_cursor.fetchall()
-    )
-
-    alumni = rows_as_dict(
-        alumni_cursor.fetchall()
-    )
-
-    testimonials = rows_as_dict(
-        testimonials_cursor.fetchall()
-    )
-
-    faculty = rows_as_dict(
-        faculty_cursor.fetchall()
-    )
-
-    connection.close()
-
-    return {
-        "toppers": toppers,
-        "alumni": alumni,
-        "testimonials": testimonials,
-        "faculty": faculty
-    }
-
 
 @app.get("/api/public")
-async def get_public_data():
+async def public_data():
 
-    return await public_data()
+    conn = get_db()
+
+    try:
+
+        toppers = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM people
+            WHERE type = 'topper'
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        alumni = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM people
+            WHERE type = 'alumni'
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        faculty = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM faculty
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        # IMPORTANT:
+        # ONLY APPROVED REVIEWS ARE PUBLIC
+
+        testimonials = db_execute(
+            conn,
+            """
+            SELECT id, name, review
+            FROM testimonials
+            WHERE status = 'approved'
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        return {
+            "toppers": rows_as_dict(toppers),
+            "alumni": rows_as_dict(alumni),
+            "faculty": rows_as_dict(faculty),
+            "testimonials": rows_as_dict(testimonials)
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# PUBLIC REVIEW SUBMISSION
+# =========================================================
+
+@app.post("/api/reviews")
+async def submit_public_review(
+    name: str = Form(...),
+    review: str = Form(...)
+):
+
+    name = name.strip()
+    review = review.strip()
+
+    if len(name) < 2:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a valid name."
+        )
+
+    if len(name) > 100:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Name is too long."
+        )
+
+    if len(review) < 5:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Review must contain at least 5 characters."
+        )
+
+    if len(review) > 1000:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Review is too long."
+        )
+
+    conn = get_db()
+
+    try:
+
+        db_execute(
+            conn,
+            """
+            INSERT INTO testimonials
+            (name, review, status)
+            VALUES (?, ?, 'pending')
+            """,
+            (
+                name,
+                review
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": (
+                "Thank you! Your review has been "
+                "submitted and is waiting for approval."
+            )
+        }
+
+    finally:
+
+        conn.close()
 
 
 # =========================================================
@@ -698,20 +859,81 @@ async def get_public_data():
 # =========================================================
 
 @app.get("/api/admin/data")
-async def get_admin_data(
+async def admin_data(
     _: bool = Depends(check_auth)
 ):
 
-    return await public_data()
+    conn = get_db()
+
+    try:
+
+        faculty = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM faculty
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        toppers = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM people
+            WHERE type = 'topper'
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        alumni = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM people
+            WHERE type = 'alumni'
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        all_reviews = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM testimonials
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        pending_reviews = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM testimonials
+            WHERE status = 'pending'
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        return {
+            "faculty": rows_as_dict(faculty),
+            "toppers": rows_as_dict(toppers),
+            "alumni": rows_as_dict(alumni),
+            "testimonials": rows_as_dict(all_reviews),
+            "pending_reviews": rows_as_dict(pending_reviews)
+        }
+
+    finally:
+
+        conn.close()
 
 
 # =========================================================
-# ADD TOPPER / ALUMNI
+# ADMIN - ADD PERSON
 # =========================================================
 
 @app.post("/api/admin/people")
 async def add_person(
-
     type: str = Form(...),
     name: str = Form(...),
     details: str = Form(""),
@@ -720,1404 +942,1124 @@ async def add_person(
     _: bool = Depends(check_auth)
 ):
 
-    if type not in [
-        "topper",
-        "alumni"
-    ]:
+    if type not in ["topper", "alumni"]:
 
         raise HTTPException(
             status_code=400,
-            detail="Invalid type"
+            detail="Invalid person type."
         )
 
-    name = name.strip()
+    image_url = None
 
-    if not name:
+    if photo:
 
-        raise HTTPException(
-            status_code=400,
-            detail="Name is required"
-        )
-
-    photo_url = ""
-
-    if photo and photo.filename:
-
-        validate_image(photo)
-
-        photo_url = upload_image_to_cloudinary(
+        image_url = await upload_image_to_cloudinary(
             photo,
-            "vishnu-pcm/toppers-alumni"
+            "vishnu-pcm/" + type
         )
 
-    connection = get_db()
+    conn = get_db()
 
-    cursor = db_execute(
-        connection,
-        """
-        INSERT INTO people
-        (type, name, details, review, photo)
-        VALUES (?, ?, ?, ?, ?)
-        RETURNING id
-        """,
-        (
-            type,
-            name,
-            details,
-            review,
-            photo_url
+    try:
+
+        db_execute(
+            conn,
+            """
+            INSERT INTO people
+            (type, name, details, review, photo)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (
+                type,
+                name.strip(),
+                details.strip(),
+                review.strip(),
+                image_url
+            )
         )
-    )
 
-    connection.commit()
+        conn.commit()
 
-    new_id = get_returned_id(cursor)
+        return {
+            "success": True,
+            "message": "Added successfully."
+        }
 
-    connection.close()
+    finally:
 
-    return {
-        "success": True,
-        "id": new_id,
-        "photo": photo_url
-    }
+        conn.close()
 
 
 # =========================================================
-# EDIT TOPPER / ALUMNI
+# ADMIN - EDIT PERSON
 # =========================================================
 
 @app.put("/api/admin/people/{person_id}")
 async def edit_person(
-
     person_id: int,
-
     type: str = Form(...),
     name: str = Form(...),
     details: str = Form(""),
     review: str = Form(""),
-
-    photo: UploadFile | None = File(None),
-
-    _: bool = Depends(check_auth)
-):
-
-    if type not in [
-        "topper",
-        "alumni"
-    ]:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid type"
-        )
-
-    name = name.strip()
-
-    if not name:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Name is required"
-        )
-
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM people
-        WHERE id = ?
-        AND type = ?
-        """,
-        (
-            person_id,
-            type
-        )
-    )
-
-    person = cursor.fetchone()
-
-    if not person:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Person not found"
-        )
-
-    old_photo = (
-        person["photo"]
-        if isinstance(person, dict)
-        else person[5]
-    )
-
-    new_photo = old_photo
-
-    if photo and photo.filename:
-
-        validate_image(photo)
-
-        new_photo = upload_image_to_cloudinary(
-            photo,
-            "vishnu-pcm/toppers-alumni"
-        )
-
-    db_execute(
-        connection,
-        """
-        UPDATE people
-        SET
-            name = ?,
-            details = ?,
-            review = ?,
-            photo = ?
-        WHERE id = ?
-        AND type = ?
-        """,
-        (
-            name,
-            details,
-            review,
-            new_photo,
-            person_id,
-            type
-        )
-    )
-
-    connection.commit()
-
-    connection.close()
-
-    if (
-        photo
-        and photo.filename
-        and old_photo
-    ):
-        pass
-
-    return {
-        "success": True,
-        "photo": new_photo
-    }
-
-
-# =========================================================
-# ADD FACULTY
-# =========================================================
-
-@app.post("/api/admin/faculty")
-async def add_faculty(
-
-    name: str = Form(...),
-    subject: str = Form(...),
-    description: str = Form(""),
     photo: UploadFile | None = File(None),
     _: bool = Depends(check_auth)
 ):
 
-    name = name.strip()
-    subject = subject.strip()
+    conn = get_db()
 
-    if not name or not subject:
+    try:
 
-        raise HTTPException(
-            status_code=400,
-            detail="Name and subject are required"
+        existing = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM people
+            WHERE id = ?
+            """,
+            (person_id,)
+        ).fetchone()
+
+        if not existing:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Person not found."
+            )
+
+        image_url = existing["photo"]
+
+        if photo:
+
+            image_url = await upload_image_to_cloudinary(
+                photo,
+                "vishnu-pcm/" + type
+            )
+
+        db_execute(
+            conn,
+            """
+            UPDATE people
+            SET
+                type = ?,
+                name = ?,
+                details = ?,
+                review = ?,
+                photo = ?
+            WHERE id = ?
+            """,
+            (
+                type,
+                name.strip(),
+                details.strip(),
+                review.strip(),
+                image_url,
+                person_id
+            )
         )
 
-    photo_url = ""
+        conn.commit()
 
-    if photo and photo.filename:
+        return {
+            "success": True,
+            "message": "Updated successfully."
+        }
 
-        validate_image(photo)
+    finally:
 
-        photo_url = upload_image_to_cloudinary(
-            photo,
-            "vishnu-pcm/faculty"
-        )
-
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        INSERT INTO faculty
-        (name, subject, description, photo)
-        VALUES (?, ?, ?, ?)
-        RETURNING id
-        """,
-        (
-            name,
-            subject,
-            description,
-            photo_url
-        )
-    )
-
-    connection.commit()
-
-    new_id = get_returned_id(cursor)
-
-    connection.close()
-
-    return {
-        "success": True,
-        "id": new_id,
-        "photo": photo_url
-    }
+        conn.close()
 
 
 # =========================================================
-# EDIT FACULTY
-# =========================================================
-
-@app.put("/api/admin/faculty/{faculty_id}")
-async def edit_faculty(
-
-    faculty_id: int,
-
-    name: str = Form(...),
-    subject: str = Form(...),
-    description: str = Form(""),
-
-    photo: UploadFile | None = File(None),
-
-    _: bool = Depends(check_auth)
-):
-
-    name = name.strip()
-    subject = subject.strip()
-
-    if not name or not subject:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Name and subject are required"
-        )
-
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM faculty
-        WHERE id = ?
-        """,
-        (faculty_id,)
-    )
-
-    faculty = cursor.fetchone()
-
-    if not faculty:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Faculty not found"
-        )
-
-    old_photo = (
-        faculty["photo"]
-        if isinstance(faculty, dict)
-        else faculty[4]
-    )
-
-    new_photo = old_photo
-
-    if photo and photo.filename:
-
-        validate_image(photo)
-
-        new_photo = upload_image_to_cloudinary(
-            photo,
-            "vishnu-pcm/faculty"
-        )
-
-    db_execute(
-        connection,
-        """
-        UPDATE faculty
-        SET
-            name = ?,
-            subject = ?,
-            description = ?,
-            photo = ?
-        WHERE id = ?
-        """,
-        (
-            name,
-            subject,
-            description,
-            new_photo,
-            faculty_id
-        )
-    )
-
-    connection.commit()
-
-    connection.close()
-
-    return {
-        "success": True,
-        "photo": new_photo
-    }
-
-
-# =========================================================
-# ADD REVIEW
-# =========================================================
-
-@app.post("/api/admin/testimonials")
-async def add_testimonial(
-
-    name: str = Form(...),
-    review: str = Form(""),
-    _: bool = Depends(check_auth)
-):
-
-    name = name.strip()
-
-    if not name:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Name is required"
-        )
-
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        INSERT INTO testimonials
-        (name, review)
-        VALUES (?, ?)
-        RETURNING id
-        """,
-        (
-            name,
-            review
-        )
-    )
-
-    connection.commit()
-
-    new_id = get_returned_id(cursor)
-
-    connection.close()
-
-    return {
-        "success": True,
-        "id": new_id
-    }
-
-
-# =========================================================
-# EDIT REVIEW
-# =========================================================
-
-@app.put("/api/admin/testimonials/{review_id}")
-async def edit_testimonial(
-
-    review_id: int,
-
-    name: str = Form(...),
-    review: str = Form(""),
-
-    _: bool = Depends(check_auth)
-):
-
-    name = name.strip()
-
-    if not name:
-
-        raise HTTPException(
-            status_code=400,
-            detail="Name is required"
-        )
-
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        SELECT id
-        FROM testimonials
-        WHERE id = ?
-        """,
-        (review_id,)
-    )
-
-    existing = cursor.fetchone()
-
-    if not existing:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Review not found"
-        )
-
-    db_execute(
-        connection,
-        """
-        UPDATE testimonials
-        SET
-            name = ?,
-            review = ?
-        WHERE id = ?
-        """,
-        (
-            name,
-            review,
-            review_id
-        )
-    )
-
-    connection.commit()
-
-    connection.close()
-
-    return {
-        "success": True
-    }
-
-
-# =========================================================
-# DELETE TOPPER
+# ADMIN - DELETE TOPPER
 # =========================================================
 
 @app.delete("/api/admin/topper/{person_id}")
 async def delete_topper(
-
     person_id: int,
-
     _: bool = Depends(check_auth)
 ):
 
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        SELECT photo
-        FROM people
-        WHERE id = ?
-        AND type = ?
-        """,
-        (
-            person_id,
-            "topper"
-        )
-    )
-
-    person = cursor.fetchone()
-
-    if not person:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Topper not found"
-        )
-
-    photo = (
-        person["photo"]
-        if isinstance(person, dict)
-        else person[0]
-    )
-
-    db_execute(
-        connection,
-        """
-        DELETE FROM people
-        WHERE id = ?
-        AND type = ?
-        """,
-        (
-            person_id,
-            "topper"
-        )
-    )
-
-    connection.commit()
-    connection.close()
-
-    return {
-        "success": True
-    }
+    return await delete_person(person_id, "topper")
 
 
 # =========================================================
-# DELETE ALUMNI
+# ADMIN - DELETE ALUMNI
 # =========================================================
 
 @app.delete("/api/admin/alumni/{person_id}")
 async def delete_alumni(
-
     person_id: int,
-
     _: bool = Depends(check_auth)
 ):
 
-    connection = get_db()
+    return await delete_person(person_id, "alumni")
 
-    cursor = db_execute(
-        connection,
-        """
-        SELECT photo
-        FROM people
-        WHERE id = ?
-        AND type = ?
-        """,
-        (
-            person_id,
-            "alumni"
+
+async def delete_person(
+    person_id: int,
+    person_type: str
+):
+
+    conn = get_db()
+
+    try:
+
+        person = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM people
+            WHERE id = ?
+            AND type = ?
+            """,
+            (
+                person_id,
+                person_type
+            )
+        ).fetchone()
+
+        if not person:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Person not found."
+            )
+
+        db_execute(
+            conn,
+            """
+            DELETE FROM people
+            WHERE id = ?
+            """,
+            (person_id,)
         )
-    )
 
-    person = cursor.fetchone()
+        conn.commit()
 
-    if not person:
+        return {
+            "success": True,
+            "message": "Deleted successfully."
+        }
 
-        connection.close()
+    finally:
 
-        raise HTTPException(
-            status_code=404,
-            detail="Alumni not found"
-        )
-
-    photo = (
-        person["photo"]
-        if isinstance(person, dict)
-        else person[0]
-    )
-
-    db_execute(
-        connection,
-        """
-        DELETE FROM people
-        WHERE id = ?
-        AND type = ?
-        """,
-        (
-            person_id,
-            "alumni"
-        )
-    )
-
-    connection.commit()
-    connection.close()
-
-    return {
-        "success": True
-    }
+        conn.close()
 
 
 # =========================================================
-# DELETE FACULTY
+# ADMIN - ADD FACULTY
+# =========================================================
+
+@app.post("/api/admin/faculty")
+async def add_faculty(
+    name: str = Form(...),
+    subject: str = Form(""),
+    description: str = Form(""),
+    photo: UploadFile | None = File(None),
+    _: bool = Depends(check_auth)
+):
+
+    image_url = None
+
+    if photo:
+
+        image_url = await upload_image_to_cloudinary(
+            photo,
+            "vishnu-pcm/faculty"
+        )
+
+    conn = get_db()
+
+    try:
+
+        db_execute(
+            conn,
+            """
+            INSERT INTO faculty
+            (name, subject, description, photo)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                name.strip(),
+                subject.strip(),
+                description.strip(),
+                image_url
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Faculty added successfully."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# ADMIN - EDIT FACULTY
+# =========================================================
+
+@app.put("/api/admin/faculty/{faculty_id}")
+async def edit_faculty(
+    faculty_id: int,
+    name: str = Form(...),
+    subject: str = Form(""),
+    description: str = Form(""),
+    photo: UploadFile | None = File(None),
+    _: bool = Depends(check_auth)
+):
+
+    conn = get_db()
+
+    try:
+
+        existing = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM faculty
+            WHERE id = ?
+            """,
+            (faculty_id,)
+        ).fetchone()
+
+        if not existing:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Faculty not found."
+            )
+
+        image_url = existing["photo"]
+
+        if photo:
+
+            image_url = await upload_image_to_cloudinary(
+                photo,
+                "vishnu-pcm/faculty"
+            )
+
+        db_execute(
+            conn,
+            """
+            UPDATE faculty
+            SET
+                name = ?,
+                subject = ?,
+                description = ?,
+                photo = ?
+            WHERE id = ?
+            """,
+            (
+                name.strip(),
+                subject.strip(),
+                description.strip(),
+                image_url,
+                faculty_id
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Faculty updated successfully."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# ADMIN - DELETE FACULTY
 # =========================================================
 
 @app.delete("/api/admin/faculty/{faculty_id}")
 async def delete_faculty(
-
     faculty_id: int,
-
     _: bool = Depends(check_auth)
 ):
 
-    connection = get_db()
+    conn = get_db()
 
-    cursor = db_execute(
-        connection,
-        """
-        SELECT photo
-        FROM faculty
-        WHERE id = ?
-        """,
-        (faculty_id,)
-    )
+    try:
 
-    faculty = cursor.fetchone()
+        faculty = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM faculty
+            WHERE id = ?
+            """,
+            (faculty_id,)
+        ).fetchone()
 
-    if not faculty:
+        if not faculty:
 
-        connection.close()
+            raise HTTPException(
+                status_code=404,
+                detail="Faculty not found."
+            )
 
-        raise HTTPException(
-            status_code=404,
-            detail="Faculty not found"
+        db_execute(
+            conn,
+            """
+            DELETE FROM faculty
+            WHERE id = ?
+            """,
+            (faculty_id,)
         )
 
-    db_execute(
-        connection,
-        """
-        DELETE FROM faculty
-        WHERE id = ?
-        """,
-        (faculty_id,)
-    )
+        conn.commit()
 
-    connection.commit()
-    connection.close()
+        return {
+            "success": True,
+            "message": "Faculty deleted."
+        }
 
-    return {
-        "success": True
-    }
+    finally:
+
+        conn.close()
 
 
 # =========================================================
-# DELETE REVIEW
+# ADMIN - ADD REVIEW
+# =========================================================
+
+@app.post("/api/admin/testimonials")
+async def admin_add_review(
+    name: str = Form(...),
+    review: str = Form(...),
+    _: bool = Depends(check_auth)
+):
+
+    name = name.strip()
+    review = review.strip()
+
+    if not name or not review:
+
+        raise HTTPException(
+            status_code=400,
+            detail="Name and review are required."
+        )
+
+    conn = get_db()
+
+    try:
+
+        # Reviews added by admin are automatically approved.
+
+        db_execute(
+            conn,
+            """
+            INSERT INTO testimonials
+            (name, review, status)
+            VALUES (?, ?, 'approved')
+            """,
+            (
+                name,
+                review
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Review added and approved."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# ADMIN - EDIT REVIEW
+# =========================================================
+
+@app.put("/api/admin/testimonials/{review_id}")
+async def edit_review(
+    review_id: int,
+    name: str = Form(...),
+    review: str = Form(...),
+    _: bool = Depends(check_auth)
+):
+
+    conn = get_db()
+
+    try:
+
+        existing = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM testimonials
+            WHERE id = ?
+            """,
+            (review_id,)
+        ).fetchone()
+
+        if not existing:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Review not found."
+            )
+
+        db_execute(
+            conn,
+            """
+            UPDATE testimonials
+            SET
+                name = ?,
+                review = ?
+            WHERE id = ?
+            """,
+            (
+                name.strip(),
+                review.strip(),
+                review_id
+            )
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Review updated."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# ADMIN - APPROVE REVIEW
+# =========================================================
+
+@app.put("/api/admin/review/{review_id}/approve")
+async def approve_review(
+    review_id: int,
+    _: bool = Depends(check_auth)
+):
+
+    conn = get_db()
+
+    try:
+
+        review = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM testimonials
+            WHERE id = ?
+            """,
+            (review_id,)
+        ).fetchone()
+
+        if not review:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Review not found."
+            )
+
+        db_execute(
+            conn,
+            """
+            UPDATE testimonials
+            SET status = 'approved'
+            WHERE id = ?
+            """,
+            (review_id,)
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Review approved successfully."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# ADMIN - REJECT REVIEW
+# =========================================================
+
+@app.put("/api/admin/review/{review_id}/reject")
+async def reject_review(
+    review_id: int,
+    _: bool = Depends(check_auth)
+):
+
+    conn = get_db()
+
+    try:
+
+        review = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM testimonials
+            WHERE id = ?
+            """,
+            (review_id,)
+        ).fetchone()
+
+        if not review:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Review not found."
+            )
+
+        db_execute(
+            conn,
+            """
+            UPDATE testimonials
+            SET status = 'rejected'
+            WHERE id = ?
+            """,
+            (review_id,)
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Review rejected."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# ADMIN - DELETE REVIEW
 # =========================================================
 
 @app.delete("/api/admin/review/{review_id}")
 async def delete_review(
-
     review_id: int,
-
     _: bool = Depends(check_auth)
 ):
 
-    connection = get_db()
+    conn = get_db()
 
-    db_execute(
-        connection,
-        """
-        DELETE FROM testimonials
-        WHERE id = ?
-        """,
-        (review_id,)
-    )
+    try:
 
-    connection.commit()
-    connection.close()
-
-    return {
-        "success": True
-    }
-
-
-# =========================================================
-# GALLERY HELPERS
-# =========================================================
-
-def make_gallery_slug(title):
-
-    slug = title.lower().strip()
-
-    slug = re.sub(
-        r"[^a-z0-9]+",
-        "-",
-        slug
-    )
-
-    slug = slug.strip("-")
-
-    if not slug:
-        slug = "event"
-
-    return slug
-
-
-def get_gallery_data():
-
-    connection = get_db()
-
-    event_cursor = db_execute(
-        connection,
-        """
-        SELECT
-            id,
-            title,
-            description,
-            event_date,
-            cover_photo,
-            created_at
-        FROM gallery_events
-        ORDER BY id DESC
-        """
-    )
-
-    events = rows_as_dict(
-        event_cursor.fetchall()
-    )
-
-    result = []
-
-    for event in events:
-
-        photo_cursor = db_execute(
-            connection,
+        review = db_execute(
+            conn,
             """
-            SELECT
-                id,
-                event_id,
-                photo_url,
-                public_id,
-                created_at
-            FROM gallery_photos
-            WHERE event_id = ?
-            ORDER BY id DESC
+            SELECT *
+            FROM testimonials
+            WHERE id = ?
             """,
-            (event["id"],)
+            (review_id,)
+        ).fetchone()
+
+        if not review:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Review not found."
+            )
+
+        db_execute(
+            conn,
+            """
+            DELETE FROM testimonials
+            WHERE id = ?
+            """,
+            (review_id,)
         )
 
-        photos = rows_as_dict(
-            photo_cursor.fetchall()
-        )
+        conn.commit()
 
-        event["photos"] = photos
+        return {
+            "success": True,
+            "message": "Review deleted."
+        }
 
-        event["photo_count"] = len(
-            photos
-        )
+    finally:
 
-        result.append(event)
-
-    connection.close()
-
-    return result
+        conn.close()
 
 
 # =========================================================
-# PUBLIC GALLERY
+# GALLERY - PUBLIC
 # =========================================================
 
 @app.get("/api/gallery")
-async def get_public_gallery():
+async def public_gallery():
 
-    return {
-        "gallery": get_gallery_data()
-    }
+    conn = get_db()
+
+    try:
+
+        events = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM gallery_events
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+        result = []
+
+        for event in events:
+
+            photos = db_execute(
+                conn,
+                """
+                SELECT *
+                FROM gallery_photos
+                WHERE event_id = ?
+                ORDER BY id DESC
+                """,
+                (event["id"],)
+            ).fetchall()
+
+            event_data = dict(event)
+
+            event_data["photos"] = rows_as_dict(
+                photos
+            )
+
+            result.append(event_data)
+
+        return result
+
+    finally:
+
+        conn.close()
 
 
 # =========================================================
-# ADMIN GALLERY
+# GALLERY - ADMIN
 # =========================================================
 
 @app.get("/api/admin/gallery")
-async def get_admin_gallery(
+async def admin_gallery(
     _: bool = Depends(check_auth)
 ):
 
-    return {
-        "gallery": get_gallery_data()
-    }
+    return await public_gallery()
 
 
 # =========================================================
-# CREATE GALLERY EVENT
+# GALLERY - CREATE EVENT
 # =========================================================
 
 @app.post("/api/admin/gallery/event")
 async def create_gallery_event(
-
     title: str = Form(...),
     description: str = Form(""),
     event_date: str = Form(""),
-    cover_photo: UploadFile | None = File(None),
-
+    cover: UploadFile | None = File(None),
     _: bool = Depends(check_auth)
 ):
 
-    title = title.strip()
+    cover_url = None
 
-    if not title:
+    if cover:
 
-        raise HTTPException(
-            status_code=400,
-            detail="Event title is required"
+        cover_url = await upload_image_to_cloudinary(
+            cover,
+            "vishnu-pcm/gallery"
         )
 
-    cover_url = ""
-    cover_public_id = ""
+    conn = get_db()
 
-    if cover_photo and cover_photo.filename:
+    try:
 
-        validate_image(cover_photo)
-
-        slug = make_gallery_slug(
-            title
+        db_execute(
+            conn,
+            """
+            INSERT INTO gallery_events
+            (title, description, event_date, cover_photo)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                title.strip(),
+                description.strip(),
+                event_date.strip(),
+                cover_url
+            )
         )
 
-        (
-            cover_url,
-            cover_public_id
-        ) = upload_gallery_image_to_cloudinary(
-            cover_photo,
-            f"vishnu-pcm/gallery/{slug}"
-        )
+        conn.commit()
 
-    connection = get_db()
+        return {
+            "success": True,
+            "message": "Gallery event created."
+        }
 
-    cursor = db_execute(
-        connection,
-        """
-        INSERT INTO gallery_events
-        (
-            title,
-            description,
-            event_date,
-            cover_photo
-        )
-        VALUES (?, ?, ?, ?)
-        RETURNING id
-        """,
-        (
-            title,
-            description,
-            event_date,
-            cover_url
-        )
-    )
+    finally:
 
-    connection.commit()
-
-    event_id = get_returned_id(cursor)
-
-    connection.close()
-
-    return {
-        "success": True,
-        "id": event_id,
-        "cover_photo": cover_url
-    }
+        conn.close()
 
 
 # =========================================================
-# EDIT GALLERY EVENT
+# GALLERY - EDIT EVENT
 # =========================================================
 
 @app.put("/api/admin/gallery/event/{event_id}")
 async def edit_gallery_event(
-
     event_id: int,
-
     title: str = Form(...),
     description: str = Form(""),
     event_date: str = Form(""),
-
-    cover_photo: UploadFile | None = File(None),
-
+    cover: UploadFile | None = File(None),
     _: bool = Depends(check_auth)
 ):
 
-    title = title.strip()
+    conn = get_db()
 
-    if not title:
+    try:
 
-        raise HTTPException(
-            status_code=400,
-            detail="Event title is required"
-        )
-
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM gallery_events
-        WHERE id = ?
-        """,
-        (event_id,)
-    )
-
-    event = cursor.fetchone()
-
-    if not event:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Gallery event not found"
-        )
-
-    old_cover = (
-        event["cover_photo"]
-        if isinstance(event, dict)
-        else event[4]
-    )
-
-    new_cover = old_cover
-
-    if cover_photo and cover_photo.filename:
-
-        validate_image(cover_photo)
-
-        slug = make_gallery_slug(
-            title
-        )
-
-        new_cover, _ = upload_gallery_image_to_cloudinary(
-            cover_photo,
-            f"vishnu-pcm/gallery/{slug}"
-        )
-
-    db_execute(
-        connection,
-        """
-        UPDATE gallery_events
-        SET
-            title = ?,
-            description = ?,
-            event_date = ?,
-            cover_photo = ?
-        WHERE id = ?
-        """,
-        (
-            title,
-            description,
-            event_date,
-            new_cover,
-            event_id
-        )
-    )
-
-    connection.commit()
-
-    connection.close()
-
-    return {
-        "success": True,
-        "cover_photo": new_cover
-    }
-
-
-# =========================================================
-# UPLOAD MULTIPLE GALLERY PHOTOS
-# =========================================================
-
-@app.post("/api/admin/gallery/{event_id}/photos")
-async def upload_gallery_photos(
-
-    event_id: int,
-
-    photos: list[UploadFile] = File(...),
-
-    _: bool = Depends(check_auth)
-):
-
-    connection = get_db()
-
-    event_cursor = db_execute(
-        connection,
-        """
-        SELECT *
-        FROM gallery_events
-        WHERE id = ?
-        """,
-        (event_id,)
-    )
-
-    event = event_cursor.fetchone()
-
-    if not event:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Gallery event not found"
-        )
-
-    event_title = (
-        event["title"]
-        if isinstance(event, dict)
-        else event[1]
-    )
-
-    slug = make_gallery_slug(
-        event_title
-    )
-
-    uploaded = []
-
-    for photo in photos:
-
-        if not photo or not photo.filename:
-            continue
-
-        extension = Path(
-            photo.filename
-        ).suffix.lower()
-
-        if extension not in ALLOWED_EXTENSIONS:
-            continue
-
-        (
-            photo_url,
-            public_id
-        ) = upload_gallery_image_to_cloudinary(
-            photo,
-            f"vishnu-pcm/gallery/{slug}"
-        )
-
-        cursor = db_execute(
-            connection,
+        event = db_execute(
+            conn,
             """
-            INSERT INTO gallery_photos
-            (
-                event_id,
-                photo_url,
-                public_id
-            )
-            VALUES (?, ?, ?)
-            RETURNING id
-            """,
-            (
-                event_id,
-                photo_url,
-                public_id
-            )
-        )
-
-        photo_id = get_returned_id(
-            cursor
-        )
-
-        uploaded.append({
-            "id": photo_id,
-            "photo_url": photo_url
-        })
-
-    if uploaded:
-
-        cover_cursor = db_execute(
-            connection,
-            """
-            SELECT cover_photo
+            SELECT *
             FROM gallery_events
             WHERE id = ?
             """,
             (event_id,)
+        ).fetchone()
+
+        if not event:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Gallery event not found."
+            )
+
+        cover_url = event["cover_photo"]
+
+        if cover:
+
+            cover_url = await upload_image_to_cloudinary(
+                cover,
+                "vishnu-pcm/gallery"
+            )
+
+        db_execute(
+            conn,
+            """
+            UPDATE gallery_events
+            SET
+                title = ?,
+                description = ?,
+                event_date = ?,
+                cover_photo = ?
+            WHERE id = ?
+            """,
+            (
+                title.strip(),
+                description.strip(),
+                event_date.strip(),
+                cover_url,
+                event_id
+            )
         )
 
-        cover_row = cover_cursor.fetchone()
+        conn.commit()
 
-        current_cover = (
-            cover_row["cover_photo"]
-            if isinstance(cover_row, dict)
-            else cover_row[0]
-        )
+        return {
+            "success": True,
+            "message": "Gallery event updated."
+        }
 
-        if not current_cover:
+    finally:
 
-            db_execute(
-                connection,
-                """
-                UPDATE gallery_events
-                SET cover_photo = ?
-                WHERE id = ?
-                """,
-                (
-                    uploaded[0]["photo_url"],
-                    event_id
+        conn.close()
+
+
+# =========================================================
+# GALLERY - UPLOAD PHOTOS
+# =========================================================
+
+@app.post("/api/admin/gallery/{event_id}/photos")
+async def upload_gallery_photos(
+    event_id: int,
+    photos: list[UploadFile] = File(...),
+    _: bool = Depends(check_auth)
+):
+
+    conn = get_db()
+
+    try:
+
+        event = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM gallery_events
+            WHERE id = ?
+            """,
+            (event_id,)
+        ).fetchone()
+
+        if not event:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Gallery event not found."
+            )
+
+        for photo in photos:
+
+            photo_url, public_id = (
+                await upload_gallery_image_to_cloudinary(
+                    photo
                 )
             )
 
-    connection.commit()
-    connection.close()
+            if not photo_url:
+                continue
 
-    return {
-        "success": True,
-        "uploaded": uploaded,
-        "count": len(uploaded)
-    }
-
-
-# =========================================================
-# SET GALLERY COVER
-# =========================================================
-
-@app.put(
-    "/api/admin/gallery/{event_id}/cover/{photo_id}"
-)
-async def set_gallery_cover(
-
-    event_id: int,
-    photo_id: int,
-
-    _: bool = Depends(check_auth)
-):
-
-    connection = get_db()
-
-    photo_cursor = db_execute(
-        connection,
-        """
-        SELECT photo_url
-        FROM gallery_photos
-        WHERE id = ?
-        AND event_id = ?
-        """,
-        (
-            photo_id,
-            event_id
-        )
-    )
-
-    photo = photo_cursor.fetchone()
-
-    if not photo:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Photo not found"
-        )
-
-    photo_url = (
-        photo["photo_url"]
-        if isinstance(photo, dict)
-        else photo[0]
-    )
-
-    db_execute(
-        connection,
-        """
-        UPDATE gallery_events
-        SET cover_photo = ?
-        WHERE id = ?
-        """,
-        (
-            photo_url,
-            event_id
-        )
-    )
-
-    connection.commit()
-    connection.close()
-
-    return {
-        "success": True,
-        "cover_photo": photo_url
-    }
-
-
-# =========================================================
-# DELETE GALLERY PHOTO
-# =========================================================
-
-@app.delete(
-    "/api/admin/gallery/photo/{photo_id}"
-)
-async def delete_gallery_photo(
-
-    photo_id: int,
-
-    _: bool = Depends(check_auth)
-):
-
-    connection = get_db()
-
-    cursor = db_execute(
-        connection,
-        """
-        SELECT
-            id,
-            event_id,
-            photo_url,
-            public_id
-        FROM gallery_photos
-        WHERE id = ?
-        """,
-        (photo_id,)
-    )
-
-    photo = cursor.fetchone()
-
-    if not photo:
-
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Photo not found"
-        )
-
-    if isinstance(photo, dict):
-
-        event_id = photo["event_id"]
-        photo_url = photo["photo_url"]
-        public_id = photo["public_id"]
-
-    else:
-
-        event_id = photo[1]
-        photo_url = photo[2]
-        public_id = photo[3]
-
-    delete_cloudinary_image(
-        public_id
-    )
-
-    db_execute(
-        connection,
-        """
-        DELETE FROM gallery_photos
-        WHERE id = ?
-        """,
-        (photo_id,)
-    )
-
-    cover_cursor = db_execute(
-        connection,
-        """
-        SELECT cover_photo
-        FROM gallery_events
-        WHERE id = ?
-        """,
-        (event_id,)
-    )
-
-    cover_row = cover_cursor.fetchone()
-
-    current_cover = (
-        cover_row["cover_photo"]
-        if isinstance(cover_row, dict)
-        else cover_row[0]
-    )
-
-    if current_cover == photo_url:
-
-        new_cover_cursor = db_execute(
-            connection,
-            """
-            SELECT photo_url
-            FROM gallery_photos
-            WHERE event_id = ?
-            ORDER BY id DESC
-            LIMIT 1
-            """,
-            (event_id,)
-        )
-
-        new_cover = new_cover_cursor.fetchone()
-
-        if new_cover:
-
-            new_cover_url = (
-                new_cover["photo_url"]
-                if isinstance(new_cover, dict)
-                else new_cover[0]
+            db_execute(
+                conn,
+                """
+                INSERT INTO gallery_photos
+                (event_id, photo_url, public_id)
+                VALUES (?, ?, ?)
+                """,
+                (
+                    event_id,
+                    photo_url,
+                    public_id
+                )
             )
 
-        else:
+        conn.commit()
 
-            new_cover_url = ""
+        return {
+            "success": True,
+            "message": "Photos uploaded successfully."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# GALLERY - SET COVER
+# =========================================================
+
+@app.put("/api/admin/gallery/{event_id}/cover/{photo_id}")
+async def set_gallery_cover(
+    event_id: int,
+    photo_id: int,
+    _: bool = Depends(check_auth)
+):
+
+    conn = get_db()
+
+    try:
+
+        photo = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM gallery_photos
+            WHERE id = ?
+            AND event_id = ?
+            """,
+            (
+                photo_id,
+                event_id
+            )
+        ).fetchone()
+
+        if not photo:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Photo not found."
+            )
 
         db_execute(
-            connection,
+            conn,
             """
             UPDATE gallery_events
             SET cover_photo = ?
             WHERE id = ?
             """,
             (
-                new_cover_url,
+                photo["photo_url"],
                 event_id
             )
         )
 
-    connection.commit()
-    connection.close()
+        conn.commit()
 
-    return {
-        "success": True
-    }
+        return {
+            "success": True,
+            "message": "Cover photo updated."
+        }
+
+    finally:
+
+        conn.close()
 
 
 # =========================================================
-# DELETE COMPLETE GALLERY EVENT
+# GALLERY - DELETE PHOTO
 # =========================================================
 
-@app.delete(
-    "/api/admin/gallery/event/{event_id}"
-)
-async def delete_gallery_event(
-
-    event_id: int,
-
+@app.delete("/api/admin/gallery/photo/{photo_id}")
+async def delete_gallery_photo(
+    photo_id: int,
     _: bool = Depends(check_auth)
 ):
 
-    connection = get_db()
+    conn = get_db()
 
-    event_cursor = db_execute(
-        connection,
-        """
-        SELECT id
-        FROM gallery_events
-        WHERE id = ?
-        """,
-        (event_id,)
-    )
+    try:
 
-    event = event_cursor.fetchone()
+        photo = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM gallery_photos
+            WHERE id = ?
+            """,
+            (photo_id,)
+        ).fetchone()
 
-    if not event:
+        if not photo:
 
-        connection.close()
-
-        raise HTTPException(
-            status_code=404,
-            detail="Gallery event not found"
-        )
-
-    photo_cursor = db_execute(
-        connection,
-        """
-        SELECT public_id
-        FROM gallery_photos
-        WHERE event_id = ?
-        """,
-        (event_id,)
-    )
-
-    photos = photo_cursor.fetchall()
-
-    for photo in photos:
-
-        public_id = (
-            photo["public_id"]
-            if isinstance(photo, dict)
-            else photo[0]
-        )
+            raise HTTPException(
+                status_code=404,
+                detail="Photo not found."
+            )
 
         delete_cloudinary_image(
-            public_id
+            photo["public_id"]
         )
 
-    db_execute(
-        connection,
-        """
-        DELETE FROM gallery_photos
-        WHERE event_id = ?
-        """,
-        (event_id,)
-    )
+        db_execute(
+            conn,
+            """
+            DELETE FROM gallery_photos
+            WHERE id = ?
+            """,
+            (photo_id,)
+        )
 
-    db_execute(
-        connection,
-        """
-        DELETE FROM gallery_events
-        WHERE id = ?
-        """,
-        (event_id,)
-    )
+        conn.commit()
 
-    connection.commit()
-    connection.close()
+        return {
+            "success": True,
+            "message": "Photo deleted."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# GALLERY - DELETE EVENT
+# =========================================================
+
+@app.delete("/api/admin/gallery/event/{event_id}")
+async def delete_gallery_event(
+    event_id: int,
+    _: bool = Depends(check_auth)
+):
+
+    conn = get_db()
+
+    try:
+
+        event = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM gallery_events
+            WHERE id = ?
+            """,
+            (event_id,)
+        ).fetchone()
+
+        if not event:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Gallery event not found."
+            )
+
+        photos = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM gallery_photos
+            WHERE event_id = ?
+            """,
+            (event_id,)
+        ).fetchall()
+
+        for photo in photos:
+
+            delete_cloudinary_image(
+                photo["public_id"]
+            )
+
+        db_execute(
+            conn,
+            """
+            DELETE FROM gallery_photos
+            WHERE event_id = ?
+            """,
+            (event_id,)
+        )
+
+        db_execute(
+            conn,
+            """
+            DELETE FROM gallery_events
+            WHERE id = ?
+            """,
+            (event_id,)
+        )
+
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Gallery event deleted."
+        }
+
+    finally:
+
+        conn.close()
+
+
+# =========================================================
+# HEALTH CHECK
+# =========================================================
+
+@app.get("/health")
+async def health():
 
     return {
-        "success": True
+        "status": "ok",
+        "database": "postgresql" if USE_POSTGRES else "sqlite"
     }

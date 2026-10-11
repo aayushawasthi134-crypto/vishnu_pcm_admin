@@ -10,23 +10,26 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>Vishnu PCM Classes - Admin Panel</title>
+    <title>
+        Vishnu PCM Classes - Admin Panel
+    </title>
 
     <link
         rel="stylesheet"
-        href="/assets/admin.css?v=3"
+        href="/assets/admin.css?v=4"
     >
 
 </head>
 
+
 <body>
 
 
-<!-- =====================================================
+<!-- ==================================================
      LOGIN
-===================================================== -->
+================================================== -->
 
-<div
+<section
     id="loginPage"
     class="login-page"
 >
@@ -37,11 +40,14 @@
             VPC
         </div>
 
-        <h1>Vishnu PCM Classes</h1>
+        <h1>
+            Admin Login
+        </h1>
 
         <p class="login-subtitle">
-            Admin Panel
+            Vishnu PCM Classes
         </p>
+
 
         <form
             id="loginForm"
@@ -50,11 +56,13 @@
 
             <div class="form-group">
 
-                <label>Email</label>
+                <label for="email">
+                    Email
+                </label>
 
                 <input
-                    type="email"
                     id="email"
+                    type="email"
                     placeholder="Admin email"
                     required
                 >
@@ -64,11 +72,13 @@
 
             <div class="form-group">
 
-                <label>Password</label>
+                <label for="password">
+                    Password
+                </label>
 
                 <input
-                    type="password"
                     id="password"
+                    type="password"
                     placeholder="Password"
                     required
                 >
@@ -93,12 +103,12 @@
 
     </div>
 
-</div>
+</section>
 
 
-<!-- =====================================================
+<!-- ==================================================
      ADMIN APP
-===================================================== -->
+================================================== -->
 
 <div
     id="adminApp"
@@ -114,7 +124,7 @@
         <div class="sidebar-brand">
 
             <div class="brand-icon">
-                VPC
+                V
             </div>
 
             <div>
@@ -136,7 +146,6 @@
 
             <button
                 class="nav-btn active"
-                data-section="dashboard"
                 onclick="showSection('dashboard', this)"
             >
                 <span>📊</span>
@@ -146,7 +155,6 @@
 
             <button
                 class="nav-btn"
-                data-section="faculty"
                 onclick="showSection('faculty', this)"
             >
                 <span>👨‍🏫</span>
@@ -156,7 +164,6 @@
 
             <button
                 class="nav-btn"
-                data-section="toppers"
                 onclick="showSection('toppers', this)"
             >
                 <span>🏆</span>
@@ -166,7 +173,6 @@
 
             <button
                 class="nav-btn"
-                data-section="alumni"
                 onclick="showSection('alumni', this)"
             >
                 <span>🎓</span>
@@ -176,7 +182,6 @@
 
             <button
                 class="nav-btn"
-                data-section="reviews"
                 onclick="showSection('reviews', this)"
             >
                 <span>⭐</span>
@@ -186,18 +191,17 @@
 
             <button
                 class="nav-btn"
-                data-section="gallery"
                 onclick="showSection('gallery', this)"
             >
-                <span>📸</span>
+                <span>🖼️</span>
                 Gallery
             </button>
 
 
             <a
-                class="nav-btn website-link"
                 href="https://vishnupcmwebsite.vercel.app/"
                 target="_blank"
+                class="nav-btn website-link"
             >
                 <span>🌐</span>
                 View Website
@@ -208,7 +212,7 @@
                 class="nav-btn logout-nav"
                 onclick="logout()"
             >
-                <span>🚪</span>
+                <span>↪</span>
                 Logout
             </button>
 
@@ -222,9 +226,7 @@
     <main class="admin-main">
 
 
-        <!-- =================================================
-             DASHBOARD
-        ================================================= -->
+        <!-- DASHBOARD -->
 
         <section
             id="dashboard"
@@ -236,7 +238,7 @@
                 <div>
 
                     <span class="eyebrow">
-                        ADMINISTRATION
+                        ADMIN PANEL
                     </span>
 
                     <h1>
@@ -244,17 +246,10 @@
                     </h1>
 
                     <p>
-                        Manage your Vishnu PCM Classes website.
+                        Manage Vishnu PCM Classes website.
                     </p>
 
                 </div>
-
-                <button
-                    class="secondary-btn"
-                    onclick="refreshAll()"
-                >
-                    ↻ Refresh
-                </button>
 
             </div>
 
@@ -333,7 +328,7 @@
                     <div>
 
                         <span>
-                            Reviews
+                            Approved Reviews
                         </span>
 
                         <strong id="reviewCount">
@@ -345,10 +340,31 @@
                 </div>
 
 
+                <div class="stat-card pending-stat">
+
+                    <div class="stat-icon">
+                        ⏳
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Pending Reviews
+                        </span>
+
+                        <strong id="pendingReviewCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+
                 <div class="stat-card">
 
                     <div class="stat-icon">
-                        📸
+                        🖼️
                     </div>
 
                     <div>
@@ -370,32 +386,26 @@
 
             <div class="welcome-card">
 
-                <div>
+                <span class="eyebrow">
+                    WELCOME
+                </span>
 
-                    <span class="eyebrow">
-                        CONTENT MANAGEMENT
-                    </span>
+                <h2>
+                    Vishnu PCM Classes Admin
+                </h2>
 
-                    <h2>
-                        Keep your website updated
-                    </h2>
-
-                    <p>
-                        Add new faculty, toppers, alumni,
-                        reviews and gallery events.
-                        You can also edit existing content.
-                    </p>
-
-                </div>
+                <p>
+                    Manage faculty, toppers, alumni,
+                    reviews and gallery content from
+                    this dashboard.
+                </p>
 
             </div>
 
         </section>
 
 
-        <!-- =================================================
-             FACULTY
-        ================================================= -->
+        <!-- FACULTY -->
 
         <section
             id="faculty"
@@ -407,7 +417,7 @@
                 <div>
 
                     <span class="eyebrow">
-                        CONTENT
+                        WEBSITE CONTENT
                     </span>
 
                     <h1>
@@ -432,7 +442,6 @@
                 <form
                     id="facultyForm"
                     onsubmit="addFaculty(event)"
-                    enctype="multipart/form-data"
                 >
 
                     <div class="form-grid">
@@ -444,9 +453,7 @@
                             </label>
 
                             <input
-                                type="text"
                                 name="name"
-                                placeholder="Faculty name"
                                 required
                             >
 
@@ -460,9 +467,7 @@
                             </label>
 
                             <input
-                                type="text"
                                 name="subject"
-                                placeholder="Subject"
                                 required
                             >
 
@@ -477,8 +482,7 @@
 
                             <textarea
                                 name="description"
-                                placeholder="Faculty description"
-                                rows="4"
+                                required
                             ></textarea>
 
                         </div>
@@ -493,7 +497,7 @@
                             <input
                                 type="file"
                                 name="photo"
-                                accept=".jpg,.jpeg,.png,.webp"
+                                accept="image/*"
                             >
 
                         </div>
@@ -505,7 +509,7 @@
                         type="submit"
                         class="primary-btn"
                     >
-                        + Add Faculty
+                        Add Faculty
                     </button>
 
                 </form>
@@ -521,9 +525,7 @@
         </section>
 
 
-        <!-- =================================================
-             TOPPERS
-        ================================================= -->
+        <!-- TOPPERS -->
 
         <section
             id="toppers"
@@ -535,7 +537,7 @@
                 <div>
 
                     <span class="eyebrow">
-                        ACHIEVEMENTS
+                        ACHIEVERS
                     </span>
 
                     <h1>
@@ -560,7 +562,6 @@
                 <form
                     id="topperForm"
                     onsubmit="addTopper(event)"
-                    enctype="multipart/form-data"
                 >
 
                     <input
@@ -578,7 +579,6 @@
                             </label>
 
                             <input
-                                type="text"
                                 name="name"
                                 required
                             >
@@ -593,9 +593,8 @@
                             </label>
 
                             <input
-                                type="text"
                                 name="details"
-                                placeholder="Class / achievement"
+                                placeholder="Class / Result / Achievement"
                             >
 
                         </div>
@@ -609,7 +608,6 @@
 
                             <textarea
                                 name="review"
-                                rows="3"
                             ></textarea>
 
                         </div>
@@ -624,7 +622,7 @@
                             <input
                                 type="file"
                                 name="photo"
-                                accept=".jpg,.jpeg,.png,.webp"
+                                accept="image/*"
                             >
 
                         </div>
@@ -636,7 +634,7 @@
                         type="submit"
                         class="primary-btn"
                     >
-                        + Add Topper
+                        Add Topper
                     </button>
 
                 </form>
@@ -652,9 +650,7 @@
         </section>
 
 
-        <!-- =================================================
-             ALUMNI
-        ================================================= -->
+        <!-- ALUMNI -->
 
         <section
             id="alumni"
@@ -691,7 +687,6 @@
                 <form
                     id="alumniForm"
                     onsubmit="addAlumni(event)"
-                    enctype="multipart/form-data"
                 >
 
                     <input
@@ -709,7 +704,6 @@
                             </label>
 
                             <input
-                                type="text"
                                 name="name"
                                 required
                             >
@@ -724,9 +718,7 @@
                             </label>
 
                             <input
-                                type="text"
                                 name="details"
-                                placeholder="Course / batch"
                             >
 
                         </div>
@@ -735,12 +727,11 @@
                         <div class="form-group full-width">
 
                             <label>
-                                Review
+                                Review / Message
                             </label>
 
                             <textarea
                                 name="review"
-                                rows="3"
                             ></textarea>
 
                         </div>
@@ -755,7 +746,7 @@
                             <input
                                 type="file"
                                 name="photo"
-                                accept=".jpg,.jpeg,.png,.webp"
+                                accept="image/*"
                             >
 
                         </div>
@@ -767,7 +758,7 @@
                         type="submit"
                         class="primary-btn"
                     >
-                        + Add Alumni
+                        Add Alumni
                     </button>
 
                 </form>
@@ -783,9 +774,7 @@
         </section>
 
 
-        <!-- =================================================
-             REVIEWS
-        ================================================= -->
+        <!-- REVIEWS -->
 
         <section
             id="reviews"
@@ -797,7 +786,7 @@
                 <div>
 
                     <span class="eyebrow">
-                        FEEDBACK
+                        STUDENT VOICE
                     </span>
 
                     <h1>
@@ -805,7 +794,8 @@
                     </h1>
 
                     <p>
-                        Manage student and parent reviews.
+                        Approve visitor reviews before
+                        they appear on the website.
                     </p>
 
                 </div>
@@ -813,74 +803,131 @@
             </div>
 
 
-            <div class="admin-form-card">
+            <!-- PENDING REVIEWS -->
 
-                <h2>
-                    Add Review
-                </h2>
+            <div class="review-admin-section">
 
-                <form
-                    id="reviewForm"
-                    onsubmit="addReview(event)"
-                >
+                <div class="review-admin-title">
 
-                    <div class="form-grid">
+                    <div>
 
-                        <div class="form-group">
+                        <h2>
+                            Pending Reviews
+                        </h2>
 
-                            <label>
-                                Name
-                            </label>
-
-                            <input
-                                type="text"
-                                name="name"
-                                required
-                            >
-
-                        </div>
-
-
-                        <div class="form-group full-width">
-
-                            <label>
-                                Review
-                            </label>
-
-                            <textarea
-                                name="review"
-                                rows="4"
-                                required
-                            ></textarea>
-
-                        </div>
+                        <p>
+                            These reviews are waiting
+                            for your approval.
+                        </p>
 
                     </div>
 
-
-                    <button
-                        type="submit"
-                        class="primary-btn"
+                    <span
+                        id="pendingReviewBadge"
+                        class="pending-badge"
                     >
-                        + Add Review
-                    </button>
+                        0 Pending
+                    </span>
 
-                </form>
+                </div>
+
+
+                <div
+                    id="pendingReviewList"
+                    class="admin-list"
+                ></div>
 
             </div>
 
 
-            <div
-                id="reviewList"
-                class="admin-list"
-            ></div>
+            <!-- APPROVED REVIEWS -->
+
+            <div class="review-admin-section">
+
+                <div class="review-admin-title">
+
+                    <div>
+
+                        <h2>
+                            Approved Reviews
+                        </h2>
+
+                        <p>
+                            These reviews are currently
+                            visible on the public website.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="admin-form-card">
+
+                    <h2>
+                        Add Review Manually
+                    </h2>
+
+                    <form
+                        id="reviewForm"
+                        onsubmit="addReview(event)"
+                    >
+
+                        <div class="form-grid">
+
+                            <div class="form-group">
+
+                                <label>
+                                    Name
+                                </label>
+
+                                <input
+                                    name="name"
+                                    required
+                                >
+
+                            </div>
+
+
+                            <div class="form-group full-width">
+
+                                <label>
+                                    Review
+                                </label>
+
+                                <textarea
+                                    name="review"
+                                    required
+                                ></textarea>
+
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            type="submit"
+                            class="primary-btn"
+                        >
+                            Add Approved Review
+                        </button>
+
+                    </form>
+
+                </div>
+
+
+                <div
+                    id="reviewList"
+                    class="admin-list"
+                ></div>
+
+            </div>
 
         </section>
 
 
-        <!-- =================================================
-             GALLERY
-        ================================================= -->
+        <!-- GALLERY -->
 
         <section
             id="gallery"
@@ -917,7 +964,6 @@
                 <form
                     id="galleryEventForm"
                     onsubmit="createGalleryEvent(event)"
-                    enctype="multipart/form-data"
                 >
 
                     <div class="form-grid">
@@ -929,9 +975,7 @@
                             </label>
 
                             <input
-                                type="text"
                                 name="title"
-                                placeholder="Annual Function 2026"
                                 required
                             >
 
@@ -945,8 +989,8 @@
                             </label>
 
                             <input
-                                type="date"
                                 name="event_date"
+                                type="date"
                             >
 
                         </div>
@@ -960,23 +1004,7 @@
 
                             <textarea
                                 name="description"
-                                rows="3"
                             ></textarea>
-
-                        </div>
-
-
-                        <div class="form-group full-width">
-
-                            <label>
-                                Cover Photo
-                            </label>
-
-                            <input
-                                type="file"
-                                name="cover_photo"
-                                accept=".jpg,.jpeg,.png,.webp"
-                            >
 
                         </div>
 
@@ -987,7 +1015,7 @@
                         type="submit"
                         class="primary-btn"
                     >
-                        + Create Event
+                        Create Event
                     </button>
 
                 </form>
@@ -1007,20 +1035,16 @@
 </div>
 
 
-<!-- =====================================================
+<!-- ==================================================
      EDIT MODAL
-===================================================== -->
+================================================== -->
 
 <div
     id="editModal"
     class="modal-overlay"
-    onclick="closeEditModalOnOverlay(event)"
 >
 
-    <div
-        class="edit-modal"
-        onclick="event.stopPropagation()"
-    >
+    <div class="edit-modal">
 
         <div class="modal-header">
 
@@ -1030,11 +1054,12 @@
                     EDIT
                 </span>
 
-                <h2 id="editModalTitle">
-                    Edit
+                <h2>
+                    Edit Content
                 </h2>
 
             </div>
+
 
             <button
                 type="button"
@@ -1050,7 +1075,6 @@
         <form
             id="editForm"
             onsubmit="submitEdit(event)"
-            enctype="multipart/form-data"
         >
 
             <input
@@ -1102,8 +1126,7 @@
 ></div>
 
 
-<script src="/assets/admin.js?v=3"></script>
+<script src="/assets/admin.js?v=4"></script>
 
 </body>
-
 </html>
