@@ -14,9 +14,11 @@
         Vishnu PCM Classes - Admin Panel
     </title>
 
+    <meta name="website-url" content="https://vishnupcmwebsite.vercel.app/">
+
     <link
         rel="stylesheet"
-        href="/assets/admin.css?v=4"
+        href="/assets/admin.css?v=5"
     >
 
 </head>
@@ -182,6 +184,15 @@
 
             <button
                 class="nav-btn"
+                onclick="showSection('enquiries', this)"
+            >
+                <span>📩</span>
+                Enquiries
+            </button>
+
+
+            <button
+                class="nav-btn"
                 onclick="showSection('reviews', this)"
             >
                 <span>⭐</span>
@@ -269,6 +280,26 @@
                         </span>
 
                         <strong id="facultyCount">
+                            0
+                        </strong>
+
+                    </div>
+
+                </div>
+
+                <div class="stat-card">
+
+                    <div class="stat-icon">
+                        📩
+                    </div>
+
+                    <div>
+
+                        <span>
+                            Enquiries
+                        </span>
+
+                        <strong id="enquiryCount">
                             0
                         </strong>
 
@@ -594,10 +625,13 @@
 
                             <input
                                 name="details"
-                                placeholder="Class / Result / Achievement"
+                                placeholder="Class 12 | 97.5% | JEE percentile 99.2"
                             >
 
                         </div>
+                        <p class="form-help full-width">
+                            Separate results with |, • or ; to show them as badges on the website.
+                        </p>
 
 
                         <div class="form-group full-width">
@@ -768,6 +802,41 @@
 
             <div
                 id="alumniList"
+                class="admin-list"
+            ></div>
+
+        </section>
+
+
+        <!-- ENQUIRIES -->
+
+        <section
+            id="enquiries"
+            class="admin-section"
+        >
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="eyebrow">
+                        LEAD MANAGEMENT
+                    </span>
+
+                    <h1>
+                        Website Enquiries
+                    </h1>
+
+                    <p>
+                        Follow up with visitors who sent a query from the homepage.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div
+                id="enquiryList"
                 class="admin-list"
             ></div>
 

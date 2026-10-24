@@ -2,6 +2,7 @@ import os
 import sqlite3
 import secrets
 import re
+import hmac
 from pathlib import Path
 from datetime import datetime
 
@@ -183,6 +184,19 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS active_tokens (
                     id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
                     token TEXT UNIQUE NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TIMESTAMP
+                )
+            """)
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS enquiries (
+                    id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+                    name VARCHAR(255) NOT NULL,
+                    phone VARCHAR(30) NOT NULL,
+                    email VARCHAR(255),
+                    message TEXT NOT NULL,
+                    status VARCHAR(20) NOT NULL DEFAULT 'new',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -201,6 +215,17 @@ def init_db():
                 UPDATE testimonials
                 SET status = 'approved'
                 WHERE status IS NULL
+            """)
+
+            conn.execute("""
+                ALTER TABLE active_tokens
+                ADD COLUMN IF NOT EXISTS expires_at TIMESTAMP
+            """)
+
+            conn.execute("""
+                UPDATE active_tokens
+                SET expires_at = created_at + INTERVAL '12 hours'
+                WHERE expires_at IS NULL
             """)
 
         else:
@@ -284,6 +309,19 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS active_tokens (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     token TEXT UNIQUE NOT NULL,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                    expires_at TEXT
+                )
+            """)
+
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS enquiries (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    phone TEXT NOT NULL,
+                    email TEXT,
+                    message TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'new',
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP
                 )
             """)
@@ -312,6 +350,26 @@ def init_db():
                 UPDATE testimonials
                 SET status = 'approved'
                 WHERE status IS NULL
+            """)
+
+            token_columns = conn.execute(
+                "PRAGMA table_info(active_tokens)"
+            ).fetchall()
+            token_column_names = [
+                column["name"]
+                for column in token_columns
+            ]
+
+            if "expires_at" not in token_column_names:
+                conn.execute("""
+                    ALTER TABLE active_tokens
+                    ADD COLUMN expires_at TEXT
+                """)
+
+            conn.execute("""
+                UPDATE active_tokens
+                SET expires_at = datetime(created_at, '+12 hours')
+                WHERE expires_at IS NULL
             """)
 
         conn.commit()
@@ -369,9 +427,12 @@ if (
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "https://vishnupcmwebsite.vercel.app",
-        "http://localhost:5500",
-        "http://127.0.0.1:5500"
+        origin.strip().rstrip("/")
+        for origin in os.getenv(
+            "WEBSITE_ORIGINS",
+            "https://vishnupcmwebsite.vercel.app,http://localhost:5500,http://127.0.0.1:5500"
+        ).split(",")
+        if origin.strip()
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -394,9 +455,6 @@ app.mount(
 # ADMIN TOKEN
 # =========================================================
 
-active_tokens = set()
-
-
 def get_token_from_request(request: Request):
 
     auth = request.headers.get("Authorization")
@@ -418,14 +476,36 @@ def check_auth(request: Request):
 
     token = get_token_from_request(request)
 
-    if not token or token not in active_tokens:
+    if not token:
 
         raise HTTPException(
             status_code=401,
             detail="Unauthorized"
         )
 
-    return True
+    conn = get_db()
+
+    try:
+        session = db_execute(
+            conn,
+            """
+            SELECT id
+            FROM active_tokens
+            WHERE token = ?
+              AND expires_at > CURRENT_TIMESTAMP
+            """,
+            (token,)
+        ).fetchone()
+
+        if not session:
+            raise HTTPException(
+                status_code=401,
+                detail="Session expired. Please login again."
+            )
+
+        return True
+    finally:
+        conn.close()
 
 
 # =========================================================
@@ -624,19 +704,21 @@ async def login(
     password: str = Form(...)
 ):
 
-    admin_email = os.getenv(
-        "ADMIN_EMAIL",
-        "admin@gmail.com"
-    )
+    admin_email = os.getenv("ADMIN_EMAIL")
+    admin_password = os.getenv("ADMIN_PASSWORD")
 
-    admin_password = os.getenv(
-        "ADMIN_PASSWORD",
-        "Admin@12345"
-    )
+    if not admin_email or not admin_password:
+        raise HTTPException(
+            status_code=503,
+            detail="Admin credentials are not configured."
+        )
 
     if (
-        email.strip().lower() != admin_email.lower()
-        or password != admin_password
+        not hmac.compare_digest(
+            email.strip().lower(),
+            admin_email.strip().lower()
+        )
+        or not hmac.compare_digest(password, admin_password)
     ):
 
         raise HTTPException(
@@ -646,27 +728,29 @@ async def login(
 
     token = secrets.token_urlsafe(32)
 
-    active_tokens.add(token)
-
     conn = get_db()
 
     try:
-
-        db_execute(
-            conn,
-            """
-            INSERT INTO active_tokens(token)
-            VALUES (?)
-            """,
-            (token,)
-        )
+        if USE_POSTGRES:
+            db_execute(
+                conn,
+                """
+                INSERT INTO active_tokens(token, expires_at)
+                VALUES (?, CURRENT_TIMESTAMP + INTERVAL '12 hours')
+                """,
+                (token,)
+            )
+        else:
+            db_execute(
+                conn,
+                """
+                INSERT INTO active_tokens(token, expires_at)
+                VALUES (?, datetime('now', '+12 hours'))
+                """,
+                (token,)
+            )
 
         conn.commit()
-
-    except Exception:
-
-        pass
-
     finally:
 
         conn.close()
@@ -689,9 +773,6 @@ async def logout(
     token = get_token_from_request(request)
 
     if token:
-
-        active_tokens.discard(token)
-
         conn = get_db()
 
         try:
@@ -762,7 +843,7 @@ async def public_data():
         testimonials = db_execute(
             conn,
             """
-            SELECT id, name, review
+            SELECT id, name, review, status
             FROM testimonials
             WHERE status = 'approved'
             ORDER BY id DESC
@@ -855,6 +936,75 @@ async def submit_public_review(
 
 
 # =========================================================
+# PUBLIC ENQUIRY SUBMISSION
+# =========================================================
+
+@app.post("/api/enquiries")
+async def submit_public_enquiry(
+    name: str = Form(...),
+    phone: str = Form(...),
+    email: str = Form(""),
+    message: str = Form(...)
+):
+    name = name.strip()
+    phone = phone.strip()
+    email = email.strip()
+    message = message.strip()
+    phone_digits = re.sub(r"\D", "", phone)
+
+    if len(name) < 2 or len(name) > 100:
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a name between 2 and 100 characters."
+        )
+
+    if (
+        len(phone) > 30
+        or not re.fullmatch(r"[+\d\s().-]+", phone)
+        or not 7 <= len(phone_digits) <= 15
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a valid phone number."
+        )
+
+    if email and (
+        len(email) > 254
+        or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email)
+    ):
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a valid email address."
+        )
+
+    if len(message) < 5 or len(message) > 2000:
+        raise HTTPException(
+            status_code=400,
+            detail="Please enter a query between 5 and 2000 characters."
+        )
+
+    conn = get_db()
+
+    try:
+        db_execute(
+            conn,
+            """
+            INSERT INTO enquiries (name, phone, email, message)
+            VALUES (?, ?, ?, ?)
+            """,
+            (name, phone, email or None, message)
+        )
+        conn.commit()
+
+        return {
+            "success": True,
+            "message": "Enquiry received."
+        }
+    finally:
+        conn.close()
+
+
+# =========================================================
 # ADMIN DATA
 # =========================================================
 
@@ -915,16 +1065,84 @@ async def admin_data(
             """
         ).fetchall()
 
+        enquiries = db_execute(
+            conn,
+            """
+            SELECT *
+            FROM enquiries
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
         return {
             "faculty": rows_as_dict(faculty),
             "toppers": rows_as_dict(toppers),
             "alumni": rows_as_dict(alumni),
             "testimonials": rows_as_dict(all_reviews),
-            "pending_reviews": rows_as_dict(pending_reviews)
+            "pending_reviews": rows_as_dict(pending_reviews),
+            "enquiries": rows_as_dict(enquiries)
         }
 
     finally:
 
+        conn.close()
+
+
+# =========================================================
+# ADMIN - UPDATE / DELETE ENQUIRIES
+# =========================================================
+
+@app.put("/api/admin/enquiries/{enquiry_id}/contacted")
+async def mark_enquiry_contacted(
+    enquiry_id: int,
+    _: bool = Depends(check_auth)
+):
+    conn = get_db()
+
+    try:
+        result = db_execute(
+            conn,
+            """
+            UPDATE enquiries
+            SET status = 'contacted'
+            WHERE id = ?
+            """,
+            (enquiry_id,)
+        )
+        if result.rowcount == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Enquiry not found."
+            )
+        conn.commit()
+
+        return {"success": True, "message": "Enquiry marked as contacted."}
+    finally:
+        conn.close()
+
+
+@app.delete("/api/admin/enquiries/{enquiry_id}")
+async def delete_enquiry(
+    enquiry_id: int,
+    _: bool = Depends(check_auth)
+):
+    conn = get_db()
+
+    try:
+        result = db_execute(
+            conn,
+            "DELETE FROM enquiries WHERE id = ?",
+            (enquiry_id,)
+        )
+        if result.rowcount == 0:
+            raise HTTPException(
+                status_code=404,
+                detail="Enquiry not found."
+            )
+        conn.commit()
+
+        return {"success": True, "message": "Enquiry deleted."}
+    finally:
         conn.close()
 
 
@@ -949,6 +1167,22 @@ async def add_person(
             detail="Invalid person type."
         )
 
+    name = name.strip()
+    details = details.strip()
+    review = review.strip()
+
+    if len(name) < 2 or len(name) > 100:
+        raise HTTPException(
+            status_code=400,
+            detail="Name must be between 2 and 100 characters."
+        )
+
+    if len(details) > 500 or len(review) > 1000:
+        raise HTTPException(
+            status_code=400,
+            detail="Details or message is too long."
+        )
+
     image_url = None
 
     if photo:
@@ -971,9 +1205,9 @@ async def add_person(
             """,
             (
                 type,
-                name.strip(),
-                details.strip(),
-                review.strip(),
+                name,
+                details,
+                review,
                 image_url
             )
         )
@@ -1004,6 +1238,28 @@ async def edit_person(
     photo: UploadFile | None = File(None),
     _: bool = Depends(check_auth)
 ):
+    if type not in ["topper", "alumni"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid person type."
+        )
+
+    name = name.strip()
+    details = details.strip()
+    review = review.strip()
+
+    if len(name) < 2 or len(name) > 100:
+        raise HTTPException(
+            status_code=400,
+            detail="Name must be between 2 and 100 characters."
+        )
+
+    if len(details) > 500 or len(review) > 1000:
+        raise HTTPException(
+            status_code=400,
+            detail="Details or message is too long."
+        )
+
 
     conn = get_db()
 
@@ -1049,9 +1305,9 @@ async def edit_person(
             """,
             (
                 type,
-                name.strip(),
-                details.strip(),
-                review.strip(),
+                name,
+                details,
+                review,
                 image_url,
                 person_id
             )

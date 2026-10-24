@@ -1,5 +1,7 @@
 const API_URL =
-    "https://vishnu-pcm-admin.onrender.com";
+    (window.VISHNU_CONFIG && window.VISHNU_CONFIG.apiBaseUrl) ||
+    document.querySelector('meta[name="api-base-url"]')?.content ||
+    window.location.origin;
 
 
 /* =========================================================
@@ -36,7 +38,8 @@ let currentData = {
     toppers: [],
     alumni: [],
     testimonials: [],
-    pending_reviews: []
+    pending_reviews: [],
+    enquiries: []
 
 };
 
@@ -533,6 +536,9 @@ async function loadAdminData() {
     currentData.pending_reviews =
         currentData.pending_reviews || [];
 
+    currentData.enquiries =
+        currentData.enquiries || [];
+
 
     renderAdminData();
 
@@ -557,6 +563,7 @@ function renderAdminData() {
         approvedReviews,
         currentData.pending_reviews
     );
+    renderEnquiries(currentData.enquiries);
 
     document.getElementById("facultyCount").textContent =
         currentData.faculty.length;
@@ -572,8 +579,97 @@ function renderAdminData() {
 
     document.getElementById("pendingReviewCount").textContent =
         currentData.pending_reviews.length;
+
+    document.getElementById("enquiryCount").textContent =
+        currentData.enquiries.filter(enquiry => enquiry.status === "new").length;
 }
 
+
+/* =========================================================
+   ENQUIRIES
+========================================================= */
+
+function renderEnquiries(enquiries) {
+    const container = document.getElementById("enquiryList");
+
+    if (!container) {
+        return;
+    }
+
+    if (!enquiries.length) {
+        container.innerHTML = emptyState("No website enquiries yet.");
+        return;
+    }
+
+    container.innerHTML = enquiries.map(enquiry => {
+        const phoneDigits = String(enquiry.phone || "").replace(/[^\d+]/g, "");
+        const status = enquiry.status === "contacted" ? "CONTACTED" : "NEW";
+        const createdAt = enquiry.created_at
+            ? new Date(enquiry.created_at).toLocaleString()
+            : "Date unavailable";
+
+        return `
+            <article class="admin-item">
+                <div class="admin-item-content">
+                    <div class="review-meta">
+                        <span class="status-badge ${status === "NEW" ? "pending" : "approved"}">
+                            ${status}
+                        </span>
+                        <small>${escapeHTML(createdAt)}</small>
+                    </div>
+                    <h3>${escapeHTML(enquiry.name)}</h3>
+                    <p><a href="tel:${escapeAttribute(phoneDigits)}">${escapeHTML(enquiry.phone)}</a></p>
+                    ${
+                        enquiry.email
+                            ? `<p><a href="mailto:${escapeAttribute(enquiry.email)}">${escapeHTML(enquiry.email)}</a></p>`
+                            : ""
+                    }
+                    <p class="review-text">${escapeHTML(enquiry.message)}</p>
+                </div>
+                <div class="admin-item-actions">
+                    ${
+                        enquiry.status !== "contacted"
+                            ? `<button class="approve-btn" onclick="markEnquiryContacted(${Number(enquiry.id)})">Mark contacted</button>`
+                            : ""
+                    }
+                    <button class="delete-btn" onclick="deleteEnquiry(${Number(enquiry.id)})">Delete</button>
+                </div>
+            </article>
+        `;
+    }).join("");
+}
+
+
+async function markEnquiryContacted(id) {
+    try {
+        await apiFetch(
+            `/api/admin/enquiries/${id}/contacted`,
+            { method: "PUT" }
+        );
+        await loadAdminData();
+        showToast("Enquiry marked as contacted.");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
+
+
+async function deleteEnquiry(id) {
+    if (!confirm("Delete this enquiry?")) {
+        return;
+    }
+
+    try {
+        await apiFetch(
+            `/api/admin/enquiries/${id}`,
+            { method: "DELETE" }
+        );
+        await loadAdminData();
+        showToast("Enquiry deleted.");
+    } catch (error) {
+        showToast(error.message, "error");
+    }
+}
 
 
 /* =========================================================
@@ -1680,6 +1776,7 @@ function openEditModal(
                     value="${escapeAttribute(
                         item.details
                     )}"
+                    placeholder="${type === "topper" ? "Class 12 | 97.5% | JEE percentile 99.2" : "Course / achievement"}"
                 >
 
             </div>
@@ -2527,6 +2624,14 @@ document.addEventListener(
 document.addEventListener(
     "DOMContentLoaded",
     async function () {
+        const websiteLink = document.querySelector(".website-link");
+        const configuredWebsiteUrl =
+            (window.VISHNU_CONFIG && window.VISHNU_CONFIG.siteUrl) ||
+            document.querySelector('meta[name="website-url"]')?.content;
+
+        if (websiteLink && configuredWebsiteUrl) {
+            websiteLink.href = configuredWebsiteUrl;
+        }
 
         if (getToken()) {
 
