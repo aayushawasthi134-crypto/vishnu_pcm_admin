@@ -707,8 +707,8 @@ async def login(
     password: str = Form(...)
 ):
 
-    admin_email = os.getenv("ADMIN_EMAIL")
-    admin_password = os.getenv("ADMIN_PASSWORD")
+    admin_email = os.getenv("admin@gmail.com")
+    admin_password = os.getenv("Admin@12345")
 
     if not admin_email or not admin_password:
         raise HTTPException(
