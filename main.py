@@ -8,6 +8,7 @@ from datetime import datetime
 
 import cloudinary
 import cloudinary.uploader
+from dotenv import load_dotenv
 
 from fastapi import (
     FastAPI,
@@ -35,6 +36,8 @@ app = FastAPI(title="Vishnu PCM Classes Admin")
 # =========================================================
 
 BASE = Path(__file__).resolve().parent
+
+load_dotenv(BASE / ".env")
 
 DB = BASE / "vishnu.db"
 
